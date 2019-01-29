@@ -1,0 +1,26 @@
+# initial abundances, n(X)/n(H)
+# !! E abundance is calculated from ion abundances
+# !! DO NOT include it as a separate species in this file.  
+H2          5.000D-01
+HD          2.000D-05
+He          1.400D-01
+N2          3.750D-05
+# HCN         1.000D-08
+CS          4.000D-09
+SO          5.000D-09
+HCO+        9.000D-09
+H3+         1.000D-08
+C2H         8.000D-09
+CO          7.000D-06
+H2O(gr)     1.600D-06
+# Low metals:
+Si+         1.000D-11
+Mg+         1.000D-11
+Fe+         1.000D-11
+# High Metals:
+# Si+         1.000D-09
+# Mg+         1.000D-09
+# Fe+         1.000D-09
+# Grain species
+GRAIN0      6.000D-12
+GRAIN       6.000D-12

@@ -1,0 +1,7 @@
+# input & output files:
+rspecies_fullD.dat                           # file with species
+rreacs_D_moupd_Hdes_v0.dat                   # file with reactions
+uv_photons_imlup_gaia_v2_uv_lya.dat          # file with uvfield
+xray_photons_imlup_gaia_allswft.dat          # file with xrfield
+uv_photons_imlup_gaia_v2_isrf4.dat           # file with ISRF
+None                                         # Radionuclide Ion Rate

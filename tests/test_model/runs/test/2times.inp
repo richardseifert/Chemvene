@@ -1,0 +1,4 @@
+# Time steps:
+3.000D+06              #evolutionary time span (yr),
+1.000D-00              #first time step (yr),
+100                    #total amount of time steps
