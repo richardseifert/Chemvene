@@ -9,6 +9,7 @@ import os
 from .read_abunds import find_mol, load_mol_abund
 from .read_rates import load_rates, get_reac_str, total_rates
 
+#Path to the Chemical Code Directory.
 bsd = '/bucket/ras8qnr/MasterChem_Phobos/'
 
 #Some constants that get used throughout.
@@ -540,9 +541,3 @@ def iterable(x):
         return True
     except TypeError:
         return False
-
-if __name__ == '__main__':
-    mod = 'ssm'
-    #cmod_D = chem_mod('../environ/imlup_newdust/imlup_gaia_v2_dk_TgasG04_'+mod+'/','0io.isrf4_D_Hdes.inp','../runs/'+mod)
-    cmod_D = chem_mod('../environ/imlup_newdust/imlup_gaia_v2_dk_TgasG04_'+mod+'/','0io.isrf4_D_Hdes.inp','../runs/100AU/'+mod+'_nolya')
-    cmod_noD = chem_mod('../environ/imlup_newdust/imlup_gaia_v2_dk_TgasG04_'+mod+'/','0io.isrf4_noD_Hdes.inp','../runs/noD/'+mod)
