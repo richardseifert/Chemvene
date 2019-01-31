@@ -1,7 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.cm import get_cmap
-from mpl_toolkits.axes_grid1 import make_axes_locatable
 from pandas import DataFrame
 import glob
 import os
@@ -20,6 +19,25 @@ mp = 1.67e-24  #Mass of proton in g
 mau = 1.496e11 #Conversion from AU to meters.
 
 class chem_mod:
+    '''
+        A class to handle loading, viewing, and manipulating output from
+        the disk chemical modeling code presented in Fogel et al. 2011.
+        For more in-depth documentation, visit 
+
+                https://github.com/richardseifert/chem_mod
+
+        To create an instance, the following three paths must be provided.
+            environ - string path to the environ/ directory used to run your
+                      chemical model.
+            inp     - string filename of the input file used to run your model.
+            outdir  - string path to the runs/ directory where model output is
+                      stored.
+    '''
+
+    ################################################################################
+    ################################ Initialization ################################
+    ################################################################################
+
     def __init__(self,environ,inp,outdir,bsd=bsd):
         self.set_environ(environ)
         self.set_inp(inp)
@@ -38,43 +56,82 @@ class chem_mod:
             self.environ += '/' 
     def set_inp(self,inp):
         self.inp = self.environ+inp
-        print(self.inp)
         self.inp_paths = {k:None for k in ['spec','reac','uv','xray','isrf','rn']}
         d = np.genfromtxt(self.inp,dtype=str)
         for i,k in enumerate(self.inp_paths.keys()):
             if os.path.exists(bsd+d[i]):
                 self.inp_paths[k] = bsd+d[i]
-    def load_physical(self):
-        '''
-        Load the input physical model from 1environ files
-        located in the environ directory.
-        '''
-        env_paths = glob.glob(self.environ+'1environ*')
 
-        dat = np.array([])
-        shells = np.array([np.arange(1,51)]).T
-        for path in env_paths:
-            d = np.loadtxt(path,skiprows=3)
-            d = np.hstack([d,shells])
-            if len(dat) != 0:
-                dat = np.vstack([dat,d]) 
-            else:
-                dat = d
-        
-        #Get header from test file.
-        f = open(env_paths[0])
-        header = f.readline()
-        f.close()
+    ################################################################################
+    ############################### General Loading ################################
+    ################################################################################
 
-        for i,k in enumerate(header.split()+['shell']):
-            self.phys[k] = dat[:,i]
+    def merge(self,tbl):
+        '''
+        Prepare a given table to be merged according to position, R and zAU.
+
+            ARGUMENTS:
+              tbl -    A pandas table containing the two columns 'R' and either 'shell' or 'zAU'.
+
+            RETURNS:
+              merged - A tbl with the same number of rows as phys. The returned table
+                       has values ordered according to phys['R'] and phys['shell']
+        '''
+
+        #Match R values to their nearest R values in phys['R'].
+        #This is necessary for the relational merge to work.
+        phys_R = np.array(list(set(self.phys['R'])))
+        diffs = np.vstack([(pr-tbl['R'])**2 for pr in phys_R])
+        inds = np.argmin(diffs,axis=0)
+        tbl['R'] = phys_R[inds]
+
+        #Merge according to columns of phys.
+        if 'shell' in tbl.columns:
+            merged = self.phys.merge(tbl,'left',on=['R','shell'])
+        elif 'zAU' in tbl.columns:
+            #Match zAU values at each radius to phys['zAU']
+            for R in phys_R:
+                phys_mask = self.phys['R'] == R
+                tbl_mask = tbl['R'] == R
+                phys_z = np.array(self.phys['zAU'][phys_mask])
+                diffs = np.vstack([(pz-tbl['zAU'][tbl_mask])**2 for pz in phys_z])
+                inds = np.argmin(diffs,axis=0)
+                tbl['zAU'][tbl_mask] = phys_z[inds]
+            merged = self.phys.merge(tbl,'left',on=['R','zAU'])
+        return merged
+    
+    def set_times(self,tbl):
+        '''
+        Method that takes a table with times as column headers and changes the headers
+        to match the nearest model timesteps.
+
+        ARGUMENTS:
+            tbl - A pandas.DataFrame object with times (in years) as columns header.
+        RETURNS:
+            The same table, but times have been corrected to the nearest model times.
+        '''
+        ctimes = tbl.columns
+        mtimes = self.nearest_times(ctimes,itr=True)
+        return tbl.rename(columns=dict(zip(ctimes,mtimes)))
+
+    ################################################################################
+    ########################## Handling Model Timesteps ############################
+    ################################################################################
+
     def load_times(self):
+        '''
+        Method that reads the 2times.inp file for the model and produces an array of
+        the time at each model timestep.
+
+        No arguments or returns; times are stored in self.times variable.
+        '''
         f = open(self.outdir+'2times.inp')
         f.readline()
         t_end = float(f.readline().split()[0].replace('D','E'))
         t_start = float(f.readline().split()[0].replace('D','E'))
         nsteps = float(f.readline().split()[0])
         self.times = sigfig(np.logspace(np.log10(t_start),np.log10(t_end),nsteps), 4)
+
     def nearest_times(self,times,itr=False):
         '''
         Function for finding nearest timesteps to a given time or list of times.
@@ -105,55 +162,81 @@ class chem_mod:
         else:
             return nearest
 
-    def merge(self,tbl):
+    ################################################################################
+    ########################## Handling Physical Model #############################
+    ################################################################################
+
+    def load_physical(self):
         '''
-        Prepare a given table to be merged according to position, R and zAU.
+        Method that loads the disk physical model from 1environ files.
 
-            ARGUMENTS:
-              tbl - A pandas table containing the two columns 'R' and either 'shell'.
-
-            RETURNS:
-              A tbl with the same number of rows as phys. The returned table
-              has values ordered according to phys['R'] and phys['shell']
+        No arguments or returns; physical model is stored in a pandas.DataFrame
+        object, self.phys
         '''
+        env_paths = glob.glob(self.environ+'1environ*')
 
-        #Match R values to their nearest R values in phys['R'].
-        #This is necessary to merge tables properly.
-        phys_R = np.array(list(set(self.phys['R'])))
-        diffs = np.vstack([(pr-tbl['R'])**2 for pr in phys_R])
-        inds = np.argmin(diffs,axis=0)
-        tbl['R'] = phys_R[inds]
+        dat = np.array([])
+        shells = np.array([np.arange(1,51)]).T
+        for path in env_paths:
+            d = np.loadtxt(path,skiprows=3)
+            d = np.hstack([d,shells])
+            if len(dat) != 0:
+                dat = np.vstack([dat,d]) 
+            else:
+                dat = d
+        
+        #Get header from test file.
+        f = open(env_paths[0])
+        header = f.readline()
+        f.close()
 
-        #Merge according to columns of phys.
-        if 'shell' in tbl.columns:
-            merged = self.phys.merge(tbl,'left',on=['R','shell'])
-        elif 'zAU' in tbl.columns:
-            #Match zAU values at each radius to phys['zAU']
-            for R in phys_R:
-                phys_mask = self.phys['R'] == R
-                tbl_mask = tbl['R'] == R
-                phys_z = np.array(self.phys['zAU'][phys_mask])
-                diffs = np.vstack([(pz-tbl['zAU'][tbl_mask])**2 for pz in phys_z])
-                inds = np.argmin(diffs,axis=0)
-                tbl['zAU'][tbl_mask] = phys_z[inds]
-            merged = self.phys.merge(tbl,'left',on=['R','zAU'])
-        return merged
-    def set_times(self,tbl):
-        #Set times to the exact model times.
-        # (For some reason, they vary slightly in the r*.out and *.rout files).
-        ctimes = tbl.columns
-        mtimes = self.nearest_times(ctimes,itr=True)
-        return tbl.rename(columns=dict(zip(ctimes,mtimes)))
-    def load_phot(self,uv=True,xray=True):
-        #I don't quite remember what this was going to be.. :(
-        #Something like load the uv and xray profiles, but it gets
-        #weird because they're spectra as well, so there's an extra axis.
-        pass
+        for i,k in enumerate(header.split()+['shell']):
+            self.phys[k] = dat[:,i]
+
+    ################################################################################
+    ####################### Handling Abundances of Species #########################
+    ################################################################################
+
+    def limedir(self,strmol):
+        '''
+        Function that produces string limefg path for a given species.
+        It's a pretty pointless method, because I only need the limefg path
+        twice, when loading and writing species abundances. But, I figured
+        if I ever want to change where I save limefg or what I want to name
+        the directory, I can just change it once in this method.
+
+        ARGUMENTS:
+            strmol - String name of the species.
+
+        RETURNS:
+            string path of a directory where limefg should go.
+        '''
+        return self.outdir+'e1/limefg_'+strmol+'/'
+
     def load_mol(self,strmol,times=None):
+        '''
+        Method that loads abundances of a given species, 
+        potentially at a given time or times.
+
+        If limefg exists for this species (it has previously been loaded and saved),
+        then species if loaded from this (quicker). Otherwise, species is loaded
+        directly from r*.out files.
+
+        ARGUMENTS:
+            strmol - string name of the species to load.
+            times  - Time steps to load species at. Only works if species is saved
+                     in limefg format. Optional; default times=None -> load all times.
+        RETURNS:
+            Nothing, abundances are stored in self.abunds[strmol]. Column headers are
+            model times. Use self.get_quant to get strmol at a specific time (See below).
+        '''
+        #Look for strmol in limefg format.
         limedir = self.limedir(strmol)
         if not os.path.exists(limedir):
+            #If not in limefg, load from scratch (and write to limefg).
             self.read_mol(strmol,write=True)
             return
+
         #Load from limefg
         print("Loading from limefg.")
         self.abunds[strmol] = DataFrame()
@@ -179,7 +262,18 @@ class chem_mod:
             self.abunds[strmol][time] = merged['abund']
         #Tweak times to be exact values from self.times.
         self.abunds[strmol] = self.set_times(self.abunds[strmol])
+
     def read_mol(self,strmol,write=False):
+        '''
+        Method that reads abundances of a given species from r*.out files.
+
+        ARGUMENTS:
+            strmol - string name of the species to load.
+
+        RETURNS:
+            Nothing, abundances are stored in self.abunds[strmol]. Column headers are
+            model times. Use self.get_quant to get strmol at a specific time (See below).
+        '''
         #Load from e1 files.
         dat = load_mol_abund(self.outdir+'e1/',strmol)
         times = list(set(dat[:,0]))
@@ -202,7 +296,15 @@ class chem_mod:
         if write:
             #Write abundances in limefg format.
             self.write_mol(strmol)
+
     def write_mol(self,strmol):
+        '''
+        Method that writes abundances for a species in the limefg format
+        used by LIME radiative transfer.
+
+        ARGUMENTS:
+            strmol - string name of the species to load.
+        '''
         if not strmol in self.abunds.keys():
             self.read_mol(strmol)
         savetbl = self.phys[['R','zAU','rho','Tgas','Tdust']]
@@ -210,7 +312,6 @@ class chem_mod:
         savetbl.loc[:,'abund'] = np.zeros_like(savetbl['R']) #Place holder.
 
         # Match tmp table and physical table by positions.
-        #tmp = np.genfromtxt(bsd+"scripts/IMLupModelV8_gaia/imlup_gaia_v2_abrig_model_Tgas_SB_G04.txt")
         tmp = np.genfromtxt(pkg_path[0]+'/pkg_files/imlup_gaia_v2_abrig_model_Tgas_SB_G04.txt')     
         inds = [np.argmin(( tmp[:,0]-R)**2 + (tmp[:,1]-z)**2 ) for R,z in zip(self.phys['R'],self.phys['zAU'])]
         tmp_sort = tmp[inds]
@@ -228,25 +329,56 @@ class chem_mod:
         times = list(set(self.abunds[strmol].columns))
         for i,time in enumerate(times):
             fname=limedir+strmol+'_time'+str(i)+'.dat'
-            #savetbl.loc[:,'abund'] = self.abunds[strmol][time]
-            #savetbl.loc[(savetbl['rho'] <= 1e4) | (savetbl['abund'] < 1e-28), 'abund'] = 0.0
             abu = np.array(self.abunds[strmol][time])
-            #print("Time = %f, Before filter: %15.7E"%(time,np.nanmean(abu)))
+
             abu[(savetbl['rho'] <= 1e4) | (abu < 1e-28)] = 0.0
-            #abu[(savetbl['abund'] < 1e-28)] = 0.0
-            #print("Time = %f, After filter: %15.7E"%(time,np.nanmean(abu)))
             savetbl.loc[:,'abund'] = abu
-            no_nan = remove_nan(self.phys['R'],self.phys['shell'],abu)
+            no_nan = remove_nan(self.phys['R'],abu)
             savearr = np.array(savetbl)[no_nan]
             np.savetxt(fname,savearr,fmt='%15.7E')
-    def limedir(self,strmol):
-        return self.outdir+'e1/limefg_'+strmol+'/'
+
+    ################################################################################
+    ######################### Handling Species Reactions ###########################
+    ################################################################################
+    
+    def get_reac_str(self,reac_id,fmt='ascii'):
+        '''
+        Method that obtains a string representation of a given reaction in the
+        chemical network.
+
+        ARGUMENTS:
+            reac_id - Integer ID for the reaction.
+            fmt     - Desired format of the reaction string.
+                      Options:
+                        ascii - Plain text, no subscript or superscript.
+                        latex - Formatted to include subscripts and superscripts
+                                when interpreted by LaTeX.
+        RETURNS:
+            Reaction string.
+        '''
+        return get_reac_str(self.inp_paths['reac'], reac_id, fmt)
+
     def load_reac(self,strmol,reacs,times=None,radii=None):
+        '''
+        Method for loading reaction rates for a specific reaction or reactions
+        involving a specific species, optionally at specific times or radii.
+
+        ARGUMENTS:
+            strmol - Species involved in the reaction(s). This is used as the prefix
+                     for the *.rout files that contain reaction rates.
+            reacs  - Scalar or array of integer reaction IDs.
+            times  - Model timesteps at which to load reaction rates. Default is all times.
+            radii  - Model radii at which to load reaction rates. Default is all radii.
+        RETURNS:
+            Nothing, rates are stored in self.rates[reac_id]. Column headers are
+            model times. Use self.get_quant to get rates at a specific time (See below).
+        '''
         #Find nearest times to those given.
         if not times is None:
             times = self.nearest_times(times)
         #Load from e1 files.
         dat = load_rates(self.outdir+'e1/rates/',strmol,reacs,times,radii)
+
         times = list(set(dat[:,0]))
         t = dat[:,0]
         R = dat[:,1]
@@ -268,13 +400,170 @@ class chem_mod:
                 tbl['shell'] = shell[mask]
                 tbl['R'] = R[mask]
                 self.rates[reac][time] = self.merge(tbl)[time]
-    def get_reac_str(self,reac_id,fmt='ascii'):
-        return get_reac_str(self.inp_paths['reac'], reac_id, fmt)
+
     def rank_reacs(self,strmol,time=None,R=None):
+        '''
+        Method for ranking reactions involving a particular species
+        according to the reaction rates, optionally at a specific time
+        and/or radius in the model.
+
+        ARGUMENTS:
+            strmol - The species whose reactions will be ranked.
+            time   - Timestep at which to rank reactions.
+                     Default, sum over all timesteps.
+            R      - Radius at which to rank reactions.
+                     Default, sum over all radii.
+        '''
         if not time is None:
             time = self.nearest_times(time)
         rates = total_rates(self.outdir+'e1/rates/',strmol,time,R)
         return rates
+
+    ################################################################################
+    ######################## Requesting Model Shlubshlubs ##########################
+    ################################################################################
+
+    def get_quant(self,quant,time=0):
+        '''
+        Method for obtaining model quantity at all locations of the disk,
+        at a specific time.
+
+        ARGUMENTS:
+            quant - Name of quantity. String for physical quantities and species
+                    abundances. Integer for reaction IDs.
+                      For convenience of other methods that use get_quant, if an array
+                       of values is passed, get_quant will do nothing and return the 
+                       array passed to it.
+            time  - Float value of the time at which to get the quantity.
+        RETURNS:
+            1D array of quant values corresponding to R and shell/zAU columns of self.phys
+            ## Eventually I'm going to add an option to reshape the output into a 2D array
+               with constant R columns and constant shell rows. ##
+        '''
+        if iterable(quant):
+            pass #quant is already 2D values.
+        elif quant in self.phys.columns:
+            quant = self.phys[quant]
+            #("Found quant in physical.")
+        elif quant in self.abunds.keys():
+            times = np.array(self.abunds[quant].columns)
+            #nearest = self.nearest_times(times)    #Times won't necessarily align with abunds columns. Figure that out first.
+            nearest = times[np.argmin((times-time)**2)]
+            quant = self.abunds[quant][nearest]
+            #print("Found quant in abundances.")
+        elif quant in self.rates.keys():
+            times = np.array(self.rates[quant].columns)
+            #nearest = self.nearest_times(times)    #Times won't necessarily align with rates columns. Figure that out first.
+            nearest = times[np.argmin((times-time)**2)]
+            quant = self.rates[quant][nearest]
+            if np.nanmean(quant) < 0:
+                quant = -quant
+            #print("Found quant in rates.")
+        else:
+            raise ValueError("The quantity %s was not found for this model."%(quant))
+        return quant
+    
+    def z_quant(self,quant,R=100,time=0):
+        '''
+        Method for obtaining quant as a function of Z at a particular radius and time.
+
+        ARGUMENTS:
+            quant - The quantity you're interested in. Could be physical quantity,
+                    chemical species for abundances, or reaction ID for rates.
+            R     - Radius at which to return quant. Default is R = 100 AU.
+            time  - Time at which to return quant. Defaults to first timestep.
+        Returns
+            z     - 1D heights in AU.
+            quant - 1D quant values corresponding to z.
+        '''
+        #Copy quant string before it's overwritten.
+        quant_str = (str(quant)+'.')[:-1]
+
+        #Find nearest R value in grid.
+        radii = np.array(list(set(self.phys['R'])))
+        R = radii[np.argmin(np.abs(radii-R))]
+
+        #Get 1-D arrays of z and quant at specified R value.
+        R_mask = self.phys['R'] == R
+        z = np.array(self.phys['zAU'][ R_mask ])
+        quant = self.get_quant(quant,time)
+        quant = np.array(quant[ R_mask ])
+
+        #Sort by z
+        sort = np.argsort(z)
+        z = z[sort]
+        quant = quant[sort]
+
+        return z,quant
+    
+    def R_quant(self,quant,shell=0,ax=None):
+        '''
+        Method for obtaining quant as a function of radius at a particular shell and time.
+
+        ARGUMENTS:
+            quant - The quantity you're interested in. Could be physical quantity,
+                    chemical species for abundances, or reaction ID for rates.
+            shell - Shell at which to return quant. Default is shell = 0, the
+                    outer layer of the disk.
+            time  - Time at which to return quant. Defaults to first timestep.
+        Returns
+            R     - 1D radii in AU.
+            quant - 1D quant values corresponding to R.
+        '''
+        R = self.phys['R']
+        quant = self.get_quant(quant)
+        mask = self.phys['shell'] == shell
+        R,quant = R[mask],quant[mask]
+        sort = np.argsort(R)
+        R,quant = R[sort],quant[sort]
+        return R,quant
+
+    ################################################################################
+    ################################## Plotting ####################################
+    ################################################################################
+
+    def profile_quant(self,quant,time=0,log=True,ax=None,vmin=None,vmax=None,levels=25,cmap='jet',plot_grid=False):
+        '''
+        Method for plotting disk profile in a specified quantity (e.g. Dust temperature, HCO+ abundance, etc.).
+
+        ARGUMENTS:
+            quant     - The quantity you want to see a disk profile of.
+            time      - The timestep at which to produce the profile. Defaults to first timestep.
+            log       - Plot profile on logspace colormap. Defaults to True.
+            ax        - matplotlib.pyplot.axes object to plot profile onto. Default, make a new one.
+            vmin,vmax - Colormap upper and lower bounds. By default, they are determined from the
+                        minimum and maximum values of the quantity you're plotting.
+            levels    - Number of contour levels to use, or array of contour values.
+            plot_grid - Boolean whether or not to plot gridpoints on top of contours. Defaults to False.
+
+        RETURNS:
+            ax        - The axes object with the contours plotted.
+        '''
+        quant = self.get_quant(quant,time)
+        R = self.phys['R']
+        z = self.phys['zAU']
+        if vmin is None:
+            vmin = np.nanmin(quant[quant>0])
+        if vmax is None:
+            vmax = np.nanmax(quant[quant>0])
+        nx = len(list(set(self.phys['R'])))
+        ny = len(list(set(self.phys['shell'])))
+        ax = contour_points(R,z,quant,nx=nx,ny=ny,ax=ax,log=log,vmin=vmin,vmax=vmax,levels=levels,cmap=cmap) 
+        if plot_grid:
+            ax.scatter(R,z,s=1,color='black')
+        ax.set_xlabel('R (AU)')
+        ax.set_ylabel('Z (AU)')
+        return ax
+
+    def profile_reac(self,reac,time=0,**kwargs):
+        '''
+        Method for plotting disk profile in the rate of a specific reaction.
+        Same as profile_reac above, but it grabs the reaction string to use
+        as a title.
+        '''
+        ax = self.profile_quant(reac,time=time,**kwargs)
+        ax.set_title( self.get_reac_str(reac,fmt='latex') )
+    
     def profile_best_reacs(self,strmol,n,time=None,rank_R=None,**kwargs):
         rates = self.rank_reacs(strmol,time,rank_R)
         rates = rates[:n]
@@ -290,6 +579,7 @@ class chem_mod:
                 self.profile_reac(rid,time=time,cmap=cmap,**kwargs)
             else:
                 self.profile_reac(rid,time=time,**kwargs)
+
     def z_best_reacs(self,strmol,n,R,time=None,plot_mols=None,total=True,cmap_pro='Blues',cmap_des='Reds',load_n=None):
         #Create axes.
         fig,ax = plt.subplots()
@@ -357,76 +647,3 @@ class chem_mod:
                 sax.plot(z,ab,label=mol)
 
         ax.legend(loc=0)
-
-    def shell_quant(self,quant,shell,ax=None):
-        R = self.phys['R']
-        quant = self.get_quant(quant)
-        mask = self.phys['shell'] == shell
-        R,quant = R[mask],quant[mask]
-        sort = np.argsort(R)
-        R,quant = R[sort],quant[sort]
-        return R,quant
-
-    def get_quant(self,quant,time=0):
-        if iterable(quant) and type(quant) != str:
-            pass #quant is already 2D values.
-        elif quant in self.phys.columns:
-            quant = self.phys[quant]
-            #("Found quant in physical.")
-        elif quant in self.abunds.keys():
-            times = np.array(self.abunds[quant].columns)
-            #nearest = self.nearest_times(times)    #Times won't necessarily align with abunds columns. Figure that out first.
-            nearest = times[np.argmin((times-time)**2)]
-            quant = self.abunds[quant][nearest]
-            #print("Found quant in abundances.")
-        elif quant in self.rates.keys():
-            times = np.array(self.rates[quant].columns)
-            #nearest = self.nearest_times(times)    #Times won't necessarily align with rates columns. Figure that out first.
-            nearest = times[np.argmin((times-time)**2)]
-            quant = self.rates[quant][nearest]
-            if np.nanmean(quant) < 0:
-                quant = -quant
-            #print("Found quant in rates.")
-        else:
-            raise ValueError("The quantity %s was not found for this model."%(quant))
-        return quant
-    def profile_quant(self,quant,time=0,log=True,ax=None,vmin=None,vmax=None,levels=25,cmap='jet',plot_grid=False):
-        quant = self.get_quant(quant,time)
-        R = self.phys['R']
-        z = self.phys['zAU']
-        if vmin is None:
-            vmin = np.nanmin(quant[quant>0])
-        if vmax is None:
-            vmax = np.nanmax(quant[quant>0])
-        nx = len(list(set(self.phys['R'])))
-        ny = len(list(set(self.phys['shell'])))
-        #ax = contour_points(R,z,quant,nx=nx,ny=ny,ax=ax,vmin=vmin,vmax=vmax,levels=levels,cmap=cmap,locator=LogLocator())
-        ax = contour_points(R,z,quant,nx=nx,ny=ny,ax=ax,log=log,vmin=vmin,vmax=vmax,levels=levels,cmap=cmap) 
-        if plot_grid:
-            ax.scatter(R,z,s=1,color='black')
-        ax.set_xlabel('R (AU)')
-        ax.set_ylabel('Z (AU)')
-        return ax
-    def profile_reac(self,reac,time=0,**kwargs):
-        ax = self.profile_quant(reac,time=time,**kwargs)
-        ax.set_title( self.get_reac_str(reac,fmt='latex') )
-    def z_quant(self,quant,R=100,time=0):
-        #Copy quant string before it's overwritten.
-        quant_str = (str(quant)+'.')[:-1]
-
-        #Find nearest R value in grid.
-        radii = np.array(list(set(self.phys['R'])))
-        R = radii[np.argmin(np.abs(radii-R))]
-
-        #Get 1-D arrays of z and quant at specified R value.
-        R_mask = self.phys['R'] == R
-        z = np.array(self.phys['zAU'][ R_mask ])
-        quant = self.get_quant(quant,time)
-        quant = np.array(quant[ R_mask ])
-
-        #Sort by z
-        sort = np.argsort(z)
-        z = z[sort]
-        quant = quant[sort]
-
-        return z,quant

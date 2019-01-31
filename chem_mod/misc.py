@@ -51,7 +51,6 @@ def contour_points(x,y,z,nx,ny,ax=None,log=True,vmin=None,vmax=None,levels=25,**
     except TypeError:
         levels = np.linspace(vmin,vmax,levels)
         ticks  = np.linspace(vmin,vmax,10)
-    print(ticks)
     X = np.array(x).reshape((nx,ny))
     Y = np.array(y).reshape((nx,ny))
     Z = np.array(z).reshape((nx,ny))
@@ -88,22 +87,36 @@ def sigfig(x,n):
     to a specified number of significant digits.
 
     ARGUMENTS:
-    x - scalar or array of 
+        x  - scalar or array of numbers that can be cast to np.float32.
+
+    RETURNS:
+        xr - scalar or array of rounded numbers, with n significant figures.
     '''
     try:
-        x = np.array(x)
+        x = np.array(x,dtype=np.float32)
         assert len(x.shape) > 0
     except AssertionError:
         x = np.float32(x)
     om = 10**np.floor(np.log10(x/np.sign(x)))
-    print(om)
     xr = np.round((x)/om,n-1)*om
-    print(om)
     return xr
 
-def iterable(x):
+def iterable(x,count_str=False):
+    '''
+    Function for determining if a variable is iterable or not.
+
+    ARGUMENTS:
+        x         - The variable you want to check
+        count_str - Boolean whether or not strings should count as iterable.
+                    If type(x) = str and count_str = True,  then iterable(x) returns True.
+                                      if count_str = False, then iterable(x) returns False.
+    RETURNS:
+        Boolean True is x is iterable and False if x is scalar. 
+    '''
     try:
         iter(x)
+        if not count_str:
+            assert type(x) != str
         return True
-    except TypeError:
+    except (TypeError,AssertionError) as e:
         return False
