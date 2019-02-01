@@ -122,3 +122,17 @@ def iterable(x,count_str=False):
         return True
     except (TypeError,AssertionError) as e:
         return False
+
+def nint(x,y):
+    '''
+    Function for numerically integrating a simple 1D function.
+    Integration is performed using the trapezoidal method.
+    '''
+    if np.all(np.isnan(y)):
+        return np.nan
+    sort = np.argsort(x)
+    x = x[sort]
+    y = y[sort]
+    S = 0
+    S = np.nansum([ (ylo+yhi)/2 * (xhi-xlo) for xlo,xhi,ylo,yhi in zip(x[:-1],x[1:],y[:-1],y[1:])])
+    return S
