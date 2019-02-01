@@ -8,7 +8,7 @@ import os
 #Package Imports
 from .read.read_abunds import find_mol, load_mol_abund
 from .read.read_rates import load_rates, get_reac_str, total_rates
-from .misc import contour_points, remove_nan, sigfig, iterable
+from .misc import contour_points, remove_nan, sigfig, iterable, nint
 from chem_mod import __path__ as pkg_path
 
 #Path to the Chemical Code Directory.
@@ -420,7 +420,7 @@ class chem_mod:
         return rates
 
     ################################################################################
-    ######################## Requesting Model Shlubshlubs ##########################
+    ############################# Requesting Model Data ############################
     ################################################################################
 
     def get_quant(self,quant,time=0):
@@ -517,6 +517,42 @@ class chem_mod:
         sort = np.argsort(R)
         R,quant = R[sort],quant[sort]
         return R,quant
+    
+    def column_density(self,strmol,time=0):
+        '''
+        Method for producing columnd density profile for a given species.
+
+        ARGUMENTS:
+            strmol - string of the molecule you want to get column density of.
+            time   - timestep you want columnd density at.
+        RETURNS:
+            R_vals - Radius values.
+            cd     - Corresponding column densities at those radii.
+        '''
+        #Load number density of strmol (cm^-3).
+        ab = self.get_quant(strmol,time=time) # per number density Hydrogen nuclei.
+        rho = self.get_quant('rho')
+        nH = rho / mp 
+        nX = np.array(ab*nH)
+        self.profile_quant(nX)
+
+        #Load corresponding disk locations.
+        R = np.array(self.get_quant('R'))
+        R_vals = np.unique(R) #Get unique values of R.
+        R_vals = R_vals[np.argsort(R_vals)]
+        Z = np.array(self.get_quant('zAU'))
+
+        #At each radius, numerically integrate number density over the disk height
+        # to get column density in cm^-2
+        cd = np.zeros_like(R_vals)
+        for i,r in enumerate(R_vals):
+            at_R = R == r
+            n = nX[at_R]
+            z = Z[at_R]
+            cd[i] = nint(z,n)
+        
+        return R_vals,cd
+
 
     ################################################################################
     ################################## Plotting ####################################
