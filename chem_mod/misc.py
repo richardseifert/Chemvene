@@ -14,6 +14,8 @@ def make_legend_axes(ax,pad=0.15):
     '''
     divider = make_axes_locatable(ax)
     cbar_ax = divider.append_axes('right',0.15, pad=pad)
+    cbar_ax.minorticks_off()
+    cbar_ax.tick_params(axis='y',which='major',direction='out')
     return cbar_ax
 
 def contour_points(x,y,z,nx,ny,ax=None,log=True,vmin=None,vmax=None,levels=25,**kwargs):
