@@ -549,7 +549,8 @@ class chem_mod:
             at_R = R == r
             n = nX[at_R]
             z = Z[at_R]
-            cd[i] = nint(z,n)
+            z = z*mau * 100 #Convert from AU to cm
+            cd[i] = 2*nint(z,n) #The 2 is to account for both halves of the disk.
         
         return R_vals,cd
 
