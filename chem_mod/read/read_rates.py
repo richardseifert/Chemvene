@@ -36,7 +36,7 @@ def load_rates(direc,strmol,reacs=None,times=None,radii=None,min_rate = 0.):
             radii = [radii]
             radii = np.array(radii).astype(float)
     #Get list of rad
-    fpaths = glob.glob(direc+strmol+"*.rout")
+    fpaths = glob.glob(direc+strmol+"_*.rout")
     radnam = np.array([fpath.split("/")[-1].split("_")[-1].split('.rout')[0] for fpath in fpaths])
     radval = np.array([float(strg.rstrip()) for strg in radnam])
     #Sort by radius.
