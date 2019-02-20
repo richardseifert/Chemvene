@@ -69,11 +69,12 @@ def load_mol_abund(direc,strmol):
     radval = radval[sort]
     nR = len(radnam)
 
-    # Find maximum z value from filenames of .out files.
+    # Find minimum z value from filenames of .out files.
     fpaths = glob.glob(direc+"r"+radnam[0]+"*.out")
     zval = [int(fpath.split("/")[-1].split("_")[-1].split(".")[0]) for fpath in fpaths]
     min_z = min(zval)
-    nZ = len(zval)
+    #     Check all radii for the number of shells. Sometimes bad radii have too few.
+    nZ = max([len(glob.glob(direc+"r"+rn+"*.out")) for rn in radnam])
 
     mol_start,nrows,col,Times = find_mol(fpaths,strmol)
     nTimes = len(Times)
