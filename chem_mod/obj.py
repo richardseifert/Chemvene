@@ -12,7 +12,8 @@ from .misc import contour_points, remove_nan, sigfig, iterable, nint
 from chem_mod import __path__ as pkg_path
 
 #Path to the Chemical Code Directory.
-bsd = '/bucket/ras8qnr/MasterChem_Phobos/'
+#bsd = '/bucket/ras8qnr/MasterChem_Phobos/'
+bsd = '/home/ras8qnr/MasterChem_Rivanna/'
 
 #Some constants that get used throughout.
 mp = 1.67e-24  #Mass of proton in g
@@ -459,6 +460,8 @@ class chem_mod:
             if np.nanmean(quant) < 0:
                 quant = -quant
             #print("Found quant in rates.")
+        elif quant[0]=='n' and quant[1:] in self.abunds.keys():
+            quant = self.abs_abund(quant[1:],time)
         else:
             raise ValueError("The quantity %s was not found for this model."%(quant))
         return quant
@@ -517,6 +520,13 @@ class chem_mod:
         sort = np.argsort(R)
         R,quant = R[sort],quant[sort]
         return R,quant
+
+    def abs_abund(self, strmol, time=0):
+        ab = self.get_quant(strmol,time=time) # per number density Hydrogen nuclei.
+        rho = self.get_quant('rho')
+        nH = rho / mp
+        nX = np.array(ab*nH)
+        return nX
     
     def column_density(self,strmol,time=0):
         '''
