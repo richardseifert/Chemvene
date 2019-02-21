@@ -374,6 +374,11 @@ class chem_mod:
             Nothing, rates are stored in self.rates[reac_id]. Column headers are
             model times. Use self.get_quant to get rates at a specific time (See below).
         '''
+        #Check that this molecule has reaction rates collated.
+        reac_files = glob(self.outdir+'e1/rates/'+strmol+'_*.rout')
+        if len(reac_files) == 0:
+            print("Warning: This molecule has no reaction rates stored for %s. \
+                   Doing nothing and continuing.")
         #Find nearest times to those given.
         if not times is None:
             times = self.nearest_times(times)
