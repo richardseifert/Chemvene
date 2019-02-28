@@ -79,8 +79,8 @@ def load_mol_abund(direc,strmol):
     mol_start,nrows,col,Times = find_mol(fpaths,strmol)
     nTimes = len(Times)
 
-    dat = np.zeros((nR*nZ*nTimes,4))
     fpaths = glob.glob(direc+'r*.out')
+    dat = np.zeros((len(fpaths)*nTimes,4))
     row_i = 0
     t = time.time()
     for i,path in enumerate(fpaths):
