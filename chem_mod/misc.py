@@ -69,8 +69,8 @@ def contour_points(x,y,z,nx,ny,ax=None,log=True,vmin=None,vmax=None,levels=25,fi
             kwargs = dict(kwargs)
             kwargs['cmap'] = None
         cont = ax.contour(X,Y,Z,levels=levels,vmin=vmin,vmax=vmax,extend='both',**kwargs)
-    cax = make_legend_axes(ax,pad=0.1)
     if fill:
+        cax = make_legend_axes(ax,pad=0.1)
         if log:
             cbar = plt.colorbar(cont,cax=cax,ticks=ticks,format=r'$10^{%4.1f}$')
         else:
