@@ -532,6 +532,44 @@ class chem_mod:
         nH = rho / mp
         nX = np.array(ab*nH)
         return nX
+
+    def get_cd_vertical(self,mol,time=0):
+        #Copy inputs, so they aren't changed.
+        R = np.array(self.get_quant('R')) * mau*100
+        Z = np.array(self.get_quant('zAU')) * mau*100
+        if not mol in self.abunds.keys():
+            self.load_mol(mol,times=time)
+        nX = np.array(self.get_quant('n'+mol))
+        N = np.zeros_like(R)
+
+        #Sort inputs into rows
+        sort = np.lexsort((-Z,R))
+        unsort = np.argsort(sort)
+        R = R[sort]
+        Z = Z[sort]
+        nX = nX[sort]
+
+        for i in range(1,len(R)):
+            if R[i] != R[i-1]:
+                N[i] = 0.0
+            else:
+                N[i] = N[i-1] + 0.5*(nX[i]+nX[i-1])*(Z[i-1]-Z[i])
+
+        return N[unsort]
+    def get_cd_radial(self,mol,time=0):
+        pass
+
+    def get_shield_fi(self,mol,alpha,delta,zeta,cd_mode='vertical',time=0):
+        if cd_mode == 'vertical':
+            N = self.get_cd_vertical(mol,time=time)
+        elif cd_mode == 'radial':
+            N = self.get_cd_radial(mol,time=time)
+        else:
+            raise ValueError("Invalid column density mode %s"%(cd_mode))
+
+        x = N/zeta
+        f = (1+x)**-delta * np.exp(-alpha*x)
+        return f
     
     def column_density(self,strmol,time=0):
         '''
