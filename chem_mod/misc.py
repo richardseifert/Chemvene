@@ -18,7 +18,7 @@ def make_legend_axes(ax,pad=0.15):
     cbar_ax.tick_params(axis='y',which='major',direction='out')
     return cbar_ax
 
-def contour_points(x,y,z,nx,ny,ax=None,log=True,vmin=None,vmax=None,levels=25,**kwargs):
+def contour_points(x,y,z,nx,ny,ax=None,log=True,vmin=None,vmax=None,levels=25,fill=True,**kwargs):
     '''
     General function for plotting contour maps given x, y, and z points.
         ARGUMENTS:
@@ -50,6 +50,8 @@ def contour_points(x,y,z,nx,ny,ax=None,log=True,vmin=None,vmax=None,levels=25,**
         vmax = np.log10(vmax)
     try:
         iter(levels)
+        if log:
+            levels = np.log10(levels)
     except TypeError:
         levels = np.linspace(vmin,vmax,levels)
         ticks  = np.linspace(vmin,vmax,10)
@@ -60,12 +62,19 @@ def contour_points(x,y,z,nx,ny,ax=None,log=True,vmin=None,vmax=None,levels=25,**
     X = X[sortx,:]
     Y = Y[sortx,:]
     Z = Z[sortx,:]
-    cont = ax.contourf(X,Y,Z,levels=levels,vmin=vmin,vmax=vmax,extend='both',**kwargs)
-    cax = make_legend_axes(ax,pad=0.1)
-    if log:
-        cbar = plt.colorbar(cont,cax=cax,ticks=ticks,format=r'$10^{%4.1f}$')
+    if fill:
+        cont = ax.contourf(X,Y,Z,levels=levels,vmin=vmin,vmax=vmax,extend='both',**kwargs)
     else:
-        cbar = plt.colorbar(cont,cax=cax,ticks=ticks,format=r'$%4.2f$')
+        if 'colors' in kwargs and kwargs['colors'] != None and 'cmap' in kwargs:
+            kwargs = dict(kwargs)
+            kwargs['cmap'] = None
+        cont = ax.contour(X,Y,Z,levels=levels,vmin=vmin,vmax=vmax,extend='both',**kwargs)
+    cax = make_legend_axes(ax,pad=0.1)
+    if fill:
+        if log:
+            cbar = plt.colorbar(cont,cax=cax,ticks=ticks,format=r'$10^{%4.1f}$')
+        else:
+            cbar = plt.colorbar(cont,cax=cax,ticks=ticks,format=r'$%4.2f$')
     return ax
 
 def remove_nan(x,z):
