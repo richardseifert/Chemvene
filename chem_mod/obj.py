@@ -39,12 +39,26 @@ class chem_mod:
     ################################ Initialization ################################
     ################################################################################
 
-    def __init__(self,environ,inp,outdir,bsd=bsd):
-        self.set_environ(environ)
-        self.set_inp(inp)
+    def __init__(self,outdir,environ=None,inp=None,bsd=bsd):
         self.outdir = outdir
         if self.outdir[-1] != '/':
             self.outdir += '/'
+
+        if not environ is None:
+            self.set_environ(environ)
+        elif os.path.exists(self.outdir+'environ/'):
+            self.set_environ(self.outdir+'environ/')
+        else:
+            raise FileNotFoundError("Could not determine environ/ directory to use for this model.")
+
+        if not inp is None:
+            self.set_environ(environ)
+        else:
+            outdir_0io_paths = glob.glob(self.outdir+'0io*.inp')
+            if len(outdir_0io_paths) > 0:
+                self.set_inp(outdir_0io_paths[0].split('/')[-1])
+            else:
+                raise FileNotFoundError("Could not determine .inp file to use for this model.")
         self.phys = DataFrame()
         self.abunds = {}
         self.rates  = {}
