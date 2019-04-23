@@ -587,7 +587,7 @@ class chem_mod:
         rho = self.get_quant('rho')
         nH = rho / mp 
         nX = np.array(ab*nH)
-        self.profile_quant(nX)
+        #self.profile_quant(nX)
 
         #Load corresponding disk locations.
         R = np.array(self.get_quant('R'))
@@ -697,10 +697,19 @@ class chem_mod:
         n_des = len(rates[:n][rates[:n][:,1] <  0])
 
         #Load first reaction just to get z array.
-        self.load_reac(strmol,rates[0,0],radii=R,times=time)
-        z,_ = self.z_quant(rates[0,0],R=R,time=time)
-        rt_pro = np.zeros_like(z)
-        rt_des = np.zeros_like(z)
+        found = False
+        for rid,rate in rates:
+            try:
+                self.load_reac(strmol,rates[0,0],radii=R,times=time)
+                z,_ = self.z_quant(rates[0,0],R=R,time=time)
+                rt_pro = np.zeros_like(z)
+                rt_des = np.zeros_like(z)
+                found = True
+                break
+            except IndexError:
+                pass
+        if not found:
+            raise IndexError("Something went very wrong. No reactions could be loaded.")
 
         pro = 0
         des = 0
@@ -712,7 +721,11 @@ class chem_mod:
                 c = cmap_des(1-des/n_des)
                 des += 1
             print("Loading %d: %s, %15.7E"%(int(rid),self.get_reac_str(rid),rate))
-            self.load_reac(strmol,rid,times=time,radii=R)
+            try:
+                self.load_reac(strmol,rid,times=time,radii=R)
+            except IndexError:
+                print ("Warning: Couldn't load %s"%(rid))
+                continue
             z,rt = self.z_quant(rid,R=R,time=time)
             if pro+des <= n:
                 #Only plot n rates.
@@ -738,3 +751,5 @@ class chem_mod:
                 sax.plot(z,ab,label=mol)
 
         ax.legend(loc=0)
+
+        return ax
