@@ -231,7 +231,7 @@ class chem_mod:
 
     def grab_mol(self,strmol,*args,**kwargs):
         if not strmol in self.abunds:
-            self.loadmol(strmol,*args,**kwargs)
+            self.load_mol(strmol,*args,**kwargs)
 
     def load_mol(self,strmol,times=None):
         '''
