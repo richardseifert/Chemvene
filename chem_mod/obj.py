@@ -28,11 +28,12 @@ class chem_mod:
                 https://github.com/richardseifert/chem_mod
 
         To create an instance, the following three paths must be provided.
-            environ - string path to the environ/ directory used to run your
-                      chemical model.
-            inp     - string filename of the input file used to run your model.
             outdir  - string path to the runs/ directory where model output is
                       stored.
+            environ - string path to the environ/ directory used to run your
+                      chemical model. (Must given it outdir/environ doesn't exist)
+            inp     - string filename of the input file used to run your model.
+                      (Must be given if outdir/0io*.inp doesn't exits)
     '''
 
     ################################################################################
@@ -217,7 +218,7 @@ class chem_mod:
         Function that produces string limefg path for a given species.
         It's a pretty pointless method, because I only need the limefg path
         twice, when loading and writing species abundances. But, I figured
-        if I ever want to change where I save limefg or what I want to name
+        if I ever want to change where I save limefg or what I want to rename
         the directory, I can just change it once in this method.
 
         ARGUMENTS:
@@ -227,6 +228,10 @@ class chem_mod:
             string path of a directory where limefg should go.
         '''
         return self.outdir+'e1/limefg_'+strmol+'/'
+
+    def grab_mol(self,strmol,*args,**kwargs):
+        if not strmol in self.abunds:
+            self.loadmol(strmol,*args,**kwargs)
 
     def load_mol(self,strmol,times=None):
         '''
