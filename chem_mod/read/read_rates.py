@@ -105,7 +105,7 @@ def total_rates(direc,strmol,times=None,radii=None,min_rate = 0.):
         direc - String path to directory containing .rout files.
         strmol - Molecule name prefix on .rout files.
         times - Values of time to consider.
-        radii - NEED TO ADD. Values of radius to consider.
+        radii - Values of radius to consider.
         min_rate - The minimum reaction rate to load.
     '''
 
@@ -138,10 +138,8 @@ def total_rates(direc,strmol,times=None,radii=None,min_rate = 0.):
     if not radii is None:
         #Only load radii specified.
         nearest = np.argmin([ (radval - r)**2 for r in radii ], axis=1)
-        print(nearest)
         radval = radval[nearest]
         fpaths = fpaths[nearest]
-        print(fpaths)
 
     rate_dict = {}
     keep = lambda v,vals,cast=lambda s:s : (vals is None) or (v in vals) or (cast(v) in vals)

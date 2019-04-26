@@ -704,6 +704,7 @@ class chem_mod:
             cmap_des = get_cmap(cmap_des)
 
         #Figure out how many reactions to load.
+        n = int(n)
         if load_n is None:
             load_n = n
 
