@@ -193,6 +193,7 @@ def get_reac_str(fpath,reac_id,fmt='ascii'):
     while line[0] == '#':
         line = f.readline()
     found = False
+    eof_count = 0
     while not found:
         try:
             info = line.split()
@@ -201,6 +202,12 @@ def get_reac_str(fpath,reac_id,fmt='ascii'):
             line = f.readline()
         except:
             line = f.readline()
+            if line == "":
+                eof_count += 1
+            else:
+                eof_count = 0
+            if eof_count >= 5:
+                return "REACTION NOT FOUND"
     species = info[1:-4]
     if fmt == 'latex':
         # Return latex formatted string.
