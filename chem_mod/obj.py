@@ -268,7 +268,10 @@ class chem_mod:
 
         #Only load files for times requested.
         all_times = self.times
-        times = self.nearest_times(times,itr=True)
+        if times is None:
+            times = all_times
+        else:
+            times = self.nearest_times(times,itr=True)
         limepaths = [ lp for t,lp in zip(all_times,limepaths) if t in times ]
         
         abunds = np.array([])
