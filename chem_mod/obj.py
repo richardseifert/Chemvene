@@ -381,7 +381,7 @@ class chem_mod:
         '''
         return get_reac_str(self.inp_paths['reac'], reac_id, fmt)
 
-    def load_reac(self,strmol,reacs,times=None,radii=None):
+    def load_reac(self,strmol,reacs,times=None,radii=None,zones=None):
         '''
         Method for loading reaction rates for a specific reaction or reactions
         involving a specific species, optionally at specific times or radii.
@@ -405,7 +405,7 @@ class chem_mod:
         if not times is None:
             times = self.nearest_times(times)
         #Load from e1 files.
-        dat = load_rates(self.outdir+'e1/rates/',strmol,reacs,times,radii)
+        dat = load_rates(self.outdir+'e1/rates/',strmol,reacs,times,radii,zones)
 
         times = list(set(dat[:,0]))
         t = dat[:,0]
@@ -634,7 +634,7 @@ class chem_mod:
     ################################## Plotting ####################################
     ################################################################################
 
-    def profile_quant(self,quant,time=0,vmin=None,vmax=None,plot_grid=False,**kwargs):
+    def profile_quant(self,quant,time=0,vmin=None,vmax=None,plot_grid=False,zone=False,zor=False,**kwargs):
         '''
         Method for plotting disk profile in a specified quantity (e.g. Dust temperature, HCO+ abundance, etc.).
 
@@ -653,19 +653,31 @@ class chem_mod:
         '''
         quant = self.get_quant(quant,time)
         R = self.phys['R']
-        z = self.phys['zAU']
+        if zor:
+            Y = self.phys['zAU']/R
+            ylabel = 'Z/R'
+        elif zone:
+            Y = self.phys['zAU']/R
+            Y = 50. - Y/np.nanmax(Y)*49.
+            ylabel = 'Zone'
+        else:
+            Y = self.phys['zAU']
+            ylabel = 'Z (AU)'
         if vmin is None:
             vmin = np.nanmin(quant[quant>0])
         if vmax is None:
             vmax = np.nanmax(quant[quant>0])
         nx = len(list(set(self.phys['R'])))
         ny = len(list(set(self.phys['shell'])))
-        ax = contour_points(R,z,quant,nx=nx,ny=ny,vmin=vmin,vmax=vmax,**kwargs)
+
+        ax = contour_points(R,Y,quant,nx=nx,ny=ny,vmin=vmin,vmax=vmax,**kwargs)
 
         if plot_grid:
-            ax.scatter(R,z,s=1,color='black')
+            ax.scatter(R,Y,s=1,color='black')
         ax.set_xlabel('R (AU)')
-        ax.set_ylabel('Z (AU)')
+        ax.set_ylabel(ylabel)
+        if zone:
+            ax.set_ylim(50,1)
         return ax
 
     def profile_reac(self,reac,time=0,**kwargs):
