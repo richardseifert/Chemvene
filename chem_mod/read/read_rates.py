@@ -2,7 +2,7 @@ import numpy as np
 from time import time as timer
 import glob
 
-def load_rates(direc,strmol,reacs=None,times=None,radii=None,min_rate = 0.):
+def load_rates(direc,strmol,reacs=None,times=None,radii=None,zones=None,min_rate = 0.):
     '''
     Function for loading reaction rate .rout files from the chemical code.
     
@@ -49,12 +49,13 @@ def load_rates(direc,strmol,reacs=None,times=None,radii=None,min_rate = 0.):
     if not radii is None:
         #Only load radii specified.
         nearest = np.argmin([ (radval - r)**2 for r in radii ], axis=1)
+        nearest = np.unique(nearest) #Remove duplicate radii.
         radval = radval[nearest]
         fpaths = fpaths[nearest]
 
     dat = np.array([])
     for R,fpath in zip(radval,fpaths):
-        a = load_rates_single(fpath,reacs,times,min_rate)
+        a = load_rates_single(fpath,reacs,times,zones,min_rate)
         if len(a) == 0:
             continue
         a = np.insert(a,1,R,axis=1) #Insert column with current radius.
@@ -65,7 +66,16 @@ def load_rates(direc,strmol,reacs=None,times=None,radii=None,min_rate = 0.):
         
     return dat
 
-def load_rates_single(fpath,reacs,times,min_rate=0.):
+def load_rates_single(fpath,reacs,times,zones=None,min_rate=0.):
+
+    try:
+        iter(zones)
+        zones = np.array(zones).astype(int)
+    except TypeError:
+        if not zones is None:
+            zones = [zones]
+            zones = np.array(zones).astype(int)
+
     #Read rates file.
     f = open(fpath)
     lines = list(filter(None,f.read().split('\n')))
@@ -78,30 +88,28 @@ def load_rates_single(fpath,reacs,times,min_rate=0.):
         if line[0]=='#':
             continue #Ignore commented lines.
         info = list(filter(None, line.split(' ')))             
-        s = info[0]
+        zone = info[0]
         t = info[1]
-        if not keep_time(t):
-            #print("BAD TIME",t)
+        if not keep_time(t) or (not zones is None and not int(zone) in zones):
             continue
-        #else:
-            #print("Good TIME",t)
-            #print(np.nanmin(np.log10(float(t))-np.log10(times)))
         for i in range(2,len(info),2):
             reac_id = info[i]
             reac_rate = info[i+1]
             if keep(reac_id,reacs,int) and abs(float(reac_rate)) > min_rate: 
-                expanded_lines.append(' '.join([t,s,reac_id,reac_rate])+'\n')
+                expanded_lines.append(' '.join([t,zone,reac_id,reac_rate])+'\n')
     if len(expanded_lines) == 0:
-        print("Warning: No points kept from .rout file. Returning empty array.")
+        #print("Warning: No points kept from .rout file. Returning empty array.")
         return np.array([])
     a = np.loadtxt( (line for line in expanded_lines) )
+    if len(a.shape) == 1:
+        a = a[None,:]
     return a
 
-def total_rates(direc,strmol,times=None,radii=None,min_rate = 0.):
+def total_rates(direc,strmol,times=None,radii=None,zones=None,min_rate = 0.):
     '''
     Function for loading reaction rate .rout files from the chemical code.
     
-    ARGUMENTS:
+    ARGUMENT:
         direc - String path to directory containing .rout files.
         strmol - Molecule name prefix on .rout files.
         times - Values of time to consider.
@@ -123,6 +131,13 @@ def total_rates(direc,strmol,times=None,radii=None,min_rate = 0.):
         if not radii is None:
             radii = [radii]
             radii = np.array(radii).astype(float)
+    try:
+        iter(zones)
+        zones = np.array(zones).astype(float)
+    except TypeError:
+        if not zones is None:
+            zones = [zones]
+            zones = np.array(zones).astype(float)
             
 
     #Get list of radii
@@ -147,7 +162,7 @@ def total_rates(direc,strmol,times=None,radii=None,min_rate = 0.):
     npath = 0
     for fpath in fpaths:
         npath+=1
-        print("%d / %d"%(npath,len(fpaths)))
+        #print("%d / %d"%(npath,len(fpaths)))
         #Read rates file.
         f = open(fpath)
         lines = list(filter(None,f.read().split('\n')))
@@ -156,9 +171,9 @@ def total_rates(direc,strmol,times=None,radii=None,min_rate = 0.):
             if line[0]=='#':
                 continue #Ignore commented lines.
             info = list(filter(None, line.split(' ')))
-            s = info[0]
+            zone = info[0]
             t = info[1]
-            if not keep_time(t):
+            if not keep_time(t) or (not zones is None and not int(zone) in zones):
                 continue
             for i in range(2,len(info),2):
                     reac_id = int(info[i])
@@ -167,10 +182,10 @@ def total_rates(direc,strmol,times=None,radii=None,min_rate = 0.):
                         rate_dict[reac_id] += reac_rate
                     except KeyError:
                         rate_dict[reac_id] = reac_rate
+
     
     rates = np.array(list(rate_dict.items()))
     rates = rates[np.argsort(-np.abs(rates[:,1]))]
-        
     return rates
 
 def get_reac_str(fpath,reac_id,fmt='ascii'):
