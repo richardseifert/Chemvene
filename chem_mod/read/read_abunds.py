@@ -84,12 +84,16 @@ def load_mol_abund(direc,strmol):
     row_i = 0
     t = time.time()
     for i,path in enumerate(fpaths):
-        #rad = float(path.split('/')[-1].split('_e1')[0][1:])
-        rau,zau,Tg,Td,rho = load_physical(path) 
-        z = int(path.split('/')[-1].split('_')[-1].split('.')[0])
-        ab = load_mol(path,strmol,mol_start,nrows,col)
         row_f = row_i+nTimes
         dat[row_i:row_f,0] = Times
+        try:
+            rau,zau,Tg,Td,rho = load_physical(path) 
+        except TypeError:
+            print("Warning: The file at %s does not look like chemical model output to me :("%(path))
+            row_i = row_f
+            continue
+        z = int(path.split('/')[-1].split('_')[-1].split('.')[0])
+        ab = load_mol(path,strmol,mol_start,nrows,col)
         dat[row_i:row_f,1] = rau
         dat[row_i:row_f,2] = z
         if z == min_z:
@@ -103,8 +107,15 @@ def load_mol_abund(direc,strmol):
 def load_physical(fpath):
     f = open(fpath)
     line = f.readline()
+    eof_count = 0
     while not "INITIAL VALUES:" in line:
         line = f.readline()
+        if line == '':
+            eof_count += 1
+        else:
+            eof_count = 0
+        if eof_count > 5:
+            raise TypeError("The file at %s does not look like chemical model output to me :("%(fpath))
     f.readline()
     f.readline()
     rau = np.float(f.readline().split('=')[1].split()[0])

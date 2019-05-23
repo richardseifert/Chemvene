@@ -429,7 +429,7 @@ class chem_mod:
                 tbl['R'] = R[mask]
                 self.rates[reac][time] = self.merge(tbl)[time]
 
-    def rank_reacs(self,strmol,time=None,R=None):
+    def rank_reacs(self,strmol,time=None,R=None,zone=None):
         '''
         Method for ranking reactions involving a particular species
         according to the reaction rates, optionally at a specific time
@@ -444,7 +444,7 @@ class chem_mod:
         '''
         if not time is None:
             time = self.nearest_times(time)
-        rates = total_rates(self.outdir+'e1/rates/',strmol,time,R)
+        rates = total_rates(self.outdir+'e1/rates/',strmol,times=time,radii=R,zones=zone)
         return rates
 
     ################################################################################
@@ -526,26 +526,38 @@ class chem_mod:
 
         return z,quant
     
-    def R_quant(self,quant,shell=0,ax=None):
+    def R_quant(self,quant,zone=0,time=0):
         '''
-        Method for obtaining quant as a function of radius at a particular shell and time.
+        Method for obtaining quant as a function of radius at a particular zone and time.
 
         ARGUMENTS:
             quant - The quantity you're interested in. Could be physical quantity,
                     chemical species for abundances, or reaction ID for rates.
-            shell - Shell at which to return quant. Default is shell = 0, the
+            zone - Shell at which to return quant. Default is zone = 0, the
                     outer layer of the disk.
             time  - Time at which to return quant. Defaults to first timestep.
         Returns
             R     - 1D radii in AU.
             quant - 1D quant values corresponding to R.
         '''
-        R = self.phys['R']
-        quant = self.get_quant(quant)
-        mask = self.phys['shell'] == shell
-        R,quant = R[mask],quant[mask]
+        #Copy quant string before it's overwritten.
+        quant_str = (str(quant)+'.')[:-1]  #This weirdness is to force python to hardcopy the string.
+
+        #Find nearest R value in grid.
+        zones = np.array(list(set(self.phys['shell'])))
+        zone = zones[np.argmin(np.abs(zones-zone))]
+
+        #Get 1-D arrays of z and quant at specified R value.
+        zone_mask = self.phys['shell'] == zone
+        R = np.array(self.phys['R'][ zone_mask ])
+        quant = self.get_quant(quant,time)
+        quant = np.array(quant[ zone_mask ])
+
+        #Sort by z
         sort = np.argsort(R)
-        R,quant = R[sort],quant[sort]
+        R = R[sort]
+        quant = quant[sort]
+
         return R,quant
 
     def abs_abund(self, strmol, time=0):
@@ -705,12 +717,18 @@ class chem_mod:
             else:
                 self.profile_reac(rid,time=time,**kwargs)
 
-    def z_best_reacs(self,strmol,n,R,time=None,plot_mols=None,total=True,cmap_pro='Blues',cmap_des='Reds',load_n=None):
+    def plot_best_reacs(self,strmol,n,R=None,zone=None,time=None,plot_mols=None,total=True,cmap_pro='Blues',cmap_des='Reds',load_n=None,ax=None):
+        if not R is None and not zone is None:
+            raise ValueError("Both R and zone cannot be given; give one or the other.")
         #Create axes.
-        fig,ax = plt.subplots()
-        ax.set_xlabel('Z (AU)')
+        if ax is None:
+            fig,ax = plt.subplots()
         ax.set_ylabel('Rate')
         ax.set_yscale('log',nonposy='clip')
+        if not R is None:
+            ax.set_xlabel('Z (AU)')
+        if not zone is None:
+            ax.set_xlabel('R (AU)')
 
         #Handle colormap nonsense.
         if type(cmap_pro) == str:
@@ -724,27 +742,12 @@ class chem_mod:
             load_n = n
 
         #Rank rates. Take strongest n reactions.
-        rates = self.rank_reacs(strmol,time,R)
+        rates = self.rank_reacs(strmol,time,R=R,zone=zone) #NEED TO CHANGE THIS TO INCLUDE zone ARGUMENT.
         rates = rates[:load_n]
 
         #Count number of reactions producing and destroying strmol.
         n_pro = len(rates[:n][rates[:n][:,1] >= 0])
         n_des = len(rates[:n][rates[:n][:,1] <  0])
-
-        #Load first reaction just to get z array.
-        found = False
-        for rid,rate in rates:
-            try:
-                self.load_reac(strmol,rates[0,0],radii=R,times=time)
-                z,_ = self.z_quant(rates[0,0],R=R,time=time)
-                rt_pro = np.zeros_like(z)
-                rt_des = np.zeros_like(z)
-                found = True
-                break
-            except IndexError:
-                pass
-        if not found:
-            raise IndexError("Something went very wrong. No reactions could be loaded.")
 
         pro = 0
         des = 0
@@ -756,24 +759,33 @@ class chem_mod:
                 c = cmap_des(1-des/n_des)
                 des += 1
             print("Loading %d: %s, %15.7E"%(int(rid),self.get_reac_str(rid),rate))
-            try:
-                self.load_reac(strmol,rid,times=time,radii=R)
-            except IndexError:
-                print ("Warning: Couldn't load %s"%(rid))
-                continue
-            z,rt = self.z_quant(rid,R=R,time=time)
+            #try:
+            self.load_reac(strmol,rid,times=time,radii=R,zones=zone)
+            #except IndexError:
+            #    print ("Warning: Couldn't load %s"%(rid))
+            #    continue
+            if not R is None:
+                x,rt = self.z_quant(rid,R=R,time=time)
+            if not zone is None:
+                x,rt = self.R_quant(rid,zone=zone,time=time)
             if pro+des <= n:
                 #Only plot n rates.
-                ax.plot(z,rt,color=c,ls='--',label=self.get_reac_str(rid,fmt='latex'))
+                ax.plot(x,rt,color=c,ls='--',label="%d: %s"%(rid,self.get_reac_str(rid,fmt='latex')))
             if total:
+                try:
+                    rt_pro
+                    rt_des
+                except NameError:
+                    rt_pro = np.zeros_like(x)
+                    rt_des = np.zeros_like(x)
                 rt[np.isnan(rt)] = 0
                 if rate >= 0:
                     rt_pro += rt
                 else:
                     rt_des += rt
         if total:
-            ax.plot(z,rt_des,color='red',label='Destruction Rate')
-            ax.plot(z,rt_pro,color='blue',label='Prodution Rate')
+            ax.plot(x,rt_des,color='red',label='Destruction Rate')
+            ax.plot(x,rt_pro,color='blue',label='Prodution Rate')
         
         if not plot_mols is None:
             if type(plot_mols) == str:
