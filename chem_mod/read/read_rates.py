@@ -53,6 +53,7 @@ def load_rates(direc,strmol,reacs=None,times=None,radii=None,zones=None,min_rate
         radval = radval[nearest]
         fpaths = fpaths[nearest]
 
+
     dat = np.array([])
     for R,fpath in zip(radval,fpaths):
         a = load_rates_single(fpath,reacs,times,zones,min_rate)
@@ -67,7 +68,6 @@ def load_rates(direc,strmol,reacs=None,times=None,radii=None,zones=None,min_rate
     return dat
 
 def load_rates_single(fpath,reacs,times,zones=None,min_rate=0.):
-
     try:
         iter(zones)
         zones = np.array(zones).astype(int)
@@ -98,7 +98,6 @@ def load_rates_single(fpath,reacs,times,zones=None,min_rate=0.):
             if keep(reac_id,reacs,int) and abs(float(reac_rate)) > min_rate: 
                 expanded_lines.append(' '.join([t,zone,reac_id,reac_rate])+'\n')
     if len(expanded_lines) == 0:
-        #print("Warning: No points kept from .rout file. Returning empty array.")
         return np.array([])
     a = np.loadtxt( (line for line in expanded_lines) )
     if len(a.shape) == 1:
@@ -141,7 +140,7 @@ def total_rates(direc,strmol,times=None,radii=None,zones=None,min_rate = 0.):
             
 
     #Get list of radii
-    fpaths = glob.glob(direc+strmol+"*.rout")
+    fpaths = glob.glob(direc+strmol+"_*.rout")
     radnam = np.array([fpath.split("/")[-1].split("_")[-1].split('.rout')[0] for fpath in fpaths])
     radval = np.array([float(strg.rstrip()) for strg in radnam])
     #Sort by radius.

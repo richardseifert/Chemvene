@@ -742,7 +742,7 @@ class chem_mod:
             load_n = n
 
         #Rank rates. Take strongest n reactions.
-        rates = self.rank_reacs(strmol,time,R=R,zone=zone) #NEED TO CHANGE THIS TO INCLUDE zone ARGUMENT.
+        rates = self.rank_reacs(strmol,time,R=R,zone=zone)
         rates = rates[:load_n]
 
         #Count number of reactions producing and destroying strmol.
