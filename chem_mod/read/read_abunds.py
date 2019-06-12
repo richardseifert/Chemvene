@@ -76,16 +76,20 @@ def load_mol_abund(direc,strmol):
     #     Check all radii for the number of shells. Sometimes bad radii have too few.
     nZ = max([len(glob.glob(direc+"r"+rn+"*.out")) for rn in radnam])
 
-    mol_start,nrows,col,Times = find_mol(fpaths,strmol)
+    #Find where molecule abundance table starts. Don't overwrite Times,
+    # because sometimes they are all zeros for some reason and that
+    # breaks everything. "Not sure why" -Richard 06-11-19
+    mol_start,nrows,col,_ = find_mol(fpaths,strmol)
     nTimes = len(Times)
 
     fpaths = glob.glob(direc+'r*.out')
     dat = np.zeros((len(fpaths)*nTimes,4))
     row_i = 0
-    t = time.time()
     for i,path in enumerate(fpaths):
+    #    print("Looking at ",path)
         row_f = row_i+nTimes
         dat[row_i:row_f,0] = Times
+    #    print("Times set:",row_i,row_f)
         try:
             rau,zau,Tg,Td,rho = load_physical(path) 
         except TypeError:
@@ -101,7 +105,6 @@ def load_mol_abund(direc,strmol):
         else:
             dat[row_i:row_f,3] = ab
         row_i = row_f
-    
     return dat 
 
 def load_physical(fpath):
