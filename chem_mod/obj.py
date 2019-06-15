@@ -320,7 +320,7 @@ class chem_mod:
             #Write abundances in limefg format.
             self.write_mol(strmol)
 
-    def write_mol(self,strmol):
+    def write_mol(self,strmol,label=None):
         '''
         Method that writes abundances for a species in the limefg format
         used by LIME radiative transfer.
@@ -330,6 +330,10 @@ class chem_mod:
         '''
         if not strmol in self.abunds.keys():
             self.read_mol(strmol)
+        if label is None:
+            label = strmol
+        else:
+            label = strmol+'_'+label
         savetbl = self.phys[['R','zAU','rho','Tgas','Tdust']]
         savetbl.loc[:,'rho'] *= 0.8/(2.0*mp) * 1e6
         savetbl.loc[:,'abund'] = np.zeros_like(savetbl['R']) #Place holder.
@@ -346,7 +350,8 @@ class chem_mod:
         savetbl.loc[:,'R'] *= mau
         savetbl.loc[:,'zAU'] *= mau
 
-        limedir = self.limedir(strmol)
+        
+        limedir = self.limedir(label)
         if not os.path.exists(limedir):
             os.makedirs(limedir)
         times = list(set(self.abunds[strmol].columns))
