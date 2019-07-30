@@ -78,6 +78,28 @@ class chem_mod:
             if os.path.exists(bsd+d[i]):
                 self.inp_paths[k] = bsd+d[i]
 
+    def copy(self):
+        '''
+        Make a hard copy of a chem_mod instance.
+        '''
+        #Initialize
+        new_inst = chem_mod(outdir=self.outdir,environ=self.environ,inp=self.inp)
+        
+        #Hard copy physical quantities
+        new_inst.phys = self.phys.copy()
+        #for q in self.phys.columns:
+        #    new_inst.set_quant(q,self.phys[q])
+
+        #Hard copy abundances
+        for mol in self.abunds.keys():
+            new_inst.abunds[mol] = self.abunds[mol].copy()
+
+        #Hard copy rates
+        for rid in self.rates.keys():
+            new_inst.rates[rid] = self.rates[rid].copy()
+
+        return new_inst
+
     ################################################################################
     ############################### General Loading ################################
     ################################################################################
@@ -366,7 +388,7 @@ class chem_mod:
             np.savetxt(fname,savearr,fmt='%15.7E')
 
     ################################################################################
-    ######################### Handling Species Reactions ###########################
+    ######################### Handling Chemical Reactions ##########################
     ################################################################################
     
     def get_reac_str(self,reac_id,fmt='ascii'):
@@ -646,6 +668,55 @@ class chem_mod:
         
         return R_vals,cd
 
+    ################################################################################
+    ############################# Altering Model Data ##############################
+    ################################################################################
+
+    def set_quant(self,quant,val,mask=None,time=None):
+        '''
+        Method for setting a model quantity (e.g. Tgas, CO abudance, etc.) to a new
+        value or set of values, optionally within a masked region only.
+
+        ARGUMENTS:
+            quant - The quantity to be changed
+                    Must be found in either self.phys, self.abunds, or self.rates
+            val   - The new value or array of values for this quantity
+            mask  - A pre-generated mask for where the quantity should be changed.
+                    Default, no masking.
+              Ex.) #Enhancing model CO abundance within 50 AU
+                   cmod = chem_mod(someoutdir)
+                   cmod.grab_mol('CO')
+                   R = cmod.get_quant('R')
+                   mask = R < 50    # Returns array of Trues and Falses.
+                   cmod.set_quant('CO',1e-4,mask=mask)
+        '''
+        if type(mask) is type(None):
+            mask = np.ones_like(self.phys['R']).astype(bool)
+        if quant in self.phys.columns:
+            self.phys[quant][mask] = val
+        elif quant in self.abunds.keys():
+            print(self.abunds)
+            times = np.array(self.abunds[quant].columns)
+            if time is None:
+                for t in times:
+                    self.abunds[quant][t][mask] = val
+            else:
+                print("quant:",quant)
+                print("times:",times)
+                print("time:",time)
+
+                nearest = times[np.argmin((times-time)**2)]
+                self.abunds[quant][nearest][mask] = val
+        elif quant in self.rates.keys():
+            times = np.array(self.rates[quant].columns)
+            if time is None:
+                for t in times:
+                    self.rates[quant][t][mask] = val
+            else:
+                nearest = times[np.argmin((times-time)**2)]
+                self.rates[quant][nearest][mask] = val
+        else:
+            raise ValueError("The quantity %s was not found for this model."%(quant))
 
     ################################################################################
     ################################## Plotting ####################################
