@@ -718,6 +718,41 @@ class chem_mod:
         else:
             raise ValueError("The quantity %s was not found for this model."%(quant))
 
+    def set_all(self,other,mask):
+        '''
+        Replace model quantities with those of another chem_mod instance within a
+        specified mask.
+
+        ARGUMENTS:
+            other - A chem_mod instance.
+            mask  - An array of Trues and Falses to be used when setting model
+                    quantities to those of the given cmod, other.
+        '''
+        #Set physical quantities
+        for q in self.phys.columns:
+            try:
+                self.set_quant(q,other.get_quant(q)[mask],mask=mask)
+            except ValueError:
+                print("Warning: Quantity %s was not found for this model and is not \
+                       being set."%(q))
+
+        for mol in self.abunds.keys():
+            times = np.array(self.abunds[mol].columns)
+            for t in times:
+                try:
+                    self.set_quant(mol,other.get_quant(mol,time=t)[mask],mask=mask,time=t)
+                except ValueError:
+                    print("Warning: Quantity %s at time %s was not found for this model and is not \
+                           being set."%(mol,t))
+        for rid in self.rates.keys():
+            times = np.array(self.rates[rid].columns)
+            for t in times:
+                try:
+                    self.set_quant(rid,other.get_quant(rid,time=t)[mask],mask=mask,time=t)
+                except ValueError:
+                    print("Warning: Quantity %s at time %s was not found for this model and is not \
+                           being set."%(rid,t))
+            
     ################################################################################
     ################################## Plotting ####################################
     ################################################################################
