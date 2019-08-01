@@ -515,7 +515,7 @@ class chem_mod:
                 quant = -quant
             #print("Found quant in rates.")
         elif quant[0]=='n' and quant[1:] in self.abunds.keys():
-            quant = self.abs_abund(quant[1:],time)
+            quant = self.get_mol_dens(quant[1:],time)
         else:
             raise ValueError("The quantity %s was not found for this model."%(quant))
         return quant
@@ -587,7 +587,7 @@ class chem_mod:
 
         return R,quant
 
-    def abs_abund(self, strmol, time=0):
+    def get_mol_dens(self, strmol, time=0):
         ab = self.get_quant(strmol,time=time) # per number density Hydrogen nuclei.
         rho = self.get_quant('rho')
         nH = rho / mp
@@ -644,11 +644,7 @@ class chem_mod:
             cd     - Corresponding column densities at those radii.
         '''
         #Load number density of strmol (cm^-3).
-        ab = self.get_quant(strmol,time=time) # per number density Hydrogen nuclei.
-        rho = self.get_quant('rho')
-        nH = rho / mp 
-        nX = np.array(ab*nH)
-        #self.profile_quant(nX)
+        nX = self.get_mol_dens(strmol,time=time)
 
         #Load corresponding disk locations.
         R = np.array(self.get_quant('R'))
