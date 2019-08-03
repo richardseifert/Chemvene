@@ -686,21 +686,23 @@ class chem_mod:
                    mask = R < 50    # Returns array of Trues and Falses.
                    cmod.set_quant('CO',1e-4,mask=mask)
         '''
+        #If mask not given, make an all-True mask (equiv to not masking).
         if type(mask) is type(None):
             mask = np.ones_like(self.phys['R']).astype(bool)
+
+        #If val is another chem_mod instance, take the masked quant from
+        # that chem_mod instance
+        if isinstance(val,chem_mod):
+            val = val.get_quant(quant,time=time if not time is None else 0)
+
         if quant in self.phys.columns:
             self.phys[quant][mask] = val
         elif quant in self.abunds.keys():
-            print(self.abunds)
             times = np.array(self.abunds[quant].columns)
             if time is None:
                 for t in times:
                     self.abunds[quant][t][mask] = val
             else:
-                print("quant:",quant)
-                print("times:",times)
-                print("time:",time)
-
                 nearest = times[np.argmin((times-time)**2)]
                 self.abunds[quant][nearest][mask] = val
         elif quant in self.rates.keys():
@@ -711,6 +713,21 @@ class chem_mod:
             else:
                 nearest = times[np.argmin((times-time)**2)]
                 self.rates[quant][nearest][mask] = val
+        elif quant[0]=='n' and quant[1:] in self.abunds.keys():
+            #Compute abundances corresponding to given density, val.
+            rho = self.get_quant('rho')
+            nH = rho/mp
+            ab_val = val/nH
+
+            times = np.array(self.abunds[quant[1:]].columns)
+
+            if time is None:
+                for t in times:
+                    self.abunds[quant[1:]][t][mask] = ab_val
+            else:
+                nearest = times[np.argmin((times-time)**2)]
+                self.abunds[quant[1:]][nearest][mask] = ab_val
+            
         else:
             raise ValueError("The quantity %s was not found for this model."%(quant))
 
