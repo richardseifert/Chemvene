@@ -130,16 +130,9 @@ class chem_mod:
         if 'shell' in tbl.columns:
             merged = self.phys.merge(tbl,'left',on=['R','shell'])
         elif 'zAU' in tbl.columns:
-            #Match zAU values at each radius to phys['zAU']
-            #for R in phys_R:
-            #    phys_mask = self.phys['R'] == R
-            #    tbl_mask = tbl['R'] == R
-            #    phys_z = np.array(self.phys['zAU'][phys_mask])
-            #    diffs = np.vstack([(pz-tbl['zAU'][tbl_mask])**2 for pz in phys_z])
-            #    inds = np.argmin(diffs,axis=0)
-            #    tbl['zAU'][tbl_mask] = phys_z[inds]
-            #merged = self.phys.merge(tbl,'left',on=['R','zAU'])
-            #pandas.DataFrame.merge has failed me in this reguard.. :(
+            #Match by nearest R and zAU.
+            #  pandas.DataFrame.merge has failed me in this reguard.. :(
+            #  So I just had to do it myself, huney, using griddata.
             merge_cols = [col for col in tbl.columns if not col in self.phys.columns]
             points = np.vstack([tbl['R'],tbl['zAU']]).T
             values = np.array(tbl[merge_cols])
