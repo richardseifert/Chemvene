@@ -2,12 +2,14 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.cm import get_cmap
 from pandas import DataFrame
+from scipy.interpolate import griddata
 import glob
 import os
 
 #Package Imports
 from .read.read_abunds import find_mol, load_mol_abund
 from .read.read_rates import load_rates, get_reac_str, total_rates
+from .read.read_radfields import load_radfield
 from .misc import contour_points, remove_nan, sigfig, iterable, nint
 from chem_mod import __path__ as pkg_path
 
@@ -61,6 +63,7 @@ class chem_mod:
             else:
                 raise FileNotFoundError("Could not determine .inp file to use for this model.")
         self.phys = DataFrame()
+        self.radfields = {}
         self.abunds = {}
         self.rates  = {}
 
@@ -128,14 +131,23 @@ class chem_mod:
             merged = self.phys.merge(tbl,'left',on=['R','shell'])
         elif 'zAU' in tbl.columns:
             #Match zAU values at each radius to phys['zAU']
-            for R in phys_R:
-                phys_mask = self.phys['R'] == R
-                tbl_mask = tbl['R'] == R
-                phys_z = np.array(self.phys['zAU'][phys_mask])
-                diffs = np.vstack([(pz-tbl['zAU'][tbl_mask])**2 for pz in phys_z])
-                inds = np.argmin(diffs,axis=0)
-                tbl['zAU'][tbl_mask] = phys_z[inds]
-            merged = self.phys.merge(tbl,'left',on=['R','zAU'])
+            #for R in phys_R:
+            #    phys_mask = self.phys['R'] == R
+            #    tbl_mask = tbl['R'] == R
+            #    phys_z = np.array(self.phys['zAU'][phys_mask])
+            #    diffs = np.vstack([(pz-tbl['zAU'][tbl_mask])**2 for pz in phys_z])
+            #    inds = np.argmin(diffs,axis=0)
+            #    tbl['zAU'][tbl_mask] = phys_z[inds]
+            #merged = self.phys.merge(tbl,'left',on=['R','zAU'])
+            #pandas.DataFrame.merge has failed me in this reguard.. :(
+            merge_cols = [col for col in tbl.columns if not col in self.phys.columns]
+            points = np.vstack([tbl['R'],tbl['zAU']]).T
+            values = np.array(tbl[merge_cols])
+            phys_points = np.array([self.phys['R'],self.phys['zAU']]).T
+            matched = griddata(points,values,phys_points,method='nearest')
+            merged = self.phys.copy()
+            for i,col in enumerate(merge_cols):
+                merged[col] = matched[:,i]
         return merged
     
     def set_times(self,tbl):
@@ -230,6 +242,26 @@ class chem_mod:
 
         for i,k in enumerate(header.split()+['shell']):
             self.phys[k] = dat[:,i]
+
+    def load_field(self,field,path=None):
+        if path is None:
+            path = self.inp_paths[field]
+        print("Loading %s field from: %s"%(field,path))
+        dat = load_radfield(path)
+        R    = dat[:,0]
+        zAU  = dat[:,1]
+        spec = dat[:,2]
+        flux = dat[:,3]    
+
+        self.radfields[field] = DataFrame()
+        spec_vals = np.unique(spec)
+        for sv in spec_vals:
+            mask = spec==sv
+            tbl = DataFrame()
+            tbl['R']    = R[mask]
+            tbl['zAU']  = zAU[mask]
+            tbl['flux'] = flux[mask]
+            self.radfields[field][sv] = self.merge(tbl)['flux']
 
     ################################################################################
     ####################### Handling Abundances of Species #########################
