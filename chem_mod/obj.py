@@ -669,7 +669,11 @@ class chem_mod:
             cd     - Corresponding column densities at those radii.
         '''
         #Load number density of strmol (cm^-3).
-        nX = self.get_mol_dens(strmol,time=time)
+        try:
+            nX = self.get_quant('n'+strmol,time=time)
+        except:
+            nX = self.get_quant(strmol,time=time)
+            
 
         #Load corresponding disk locations.
         R = np.array(self.get_quant('R'))
