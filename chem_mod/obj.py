@@ -503,7 +503,7 @@ class chem_mod:
     ############################# Requesting Model Data ############################
     ################################################################################
 
-    def get_quant(self,quant,time=0):
+    def get_quant(self,quant,time=0,mask=None):
         '''
         Method for obtaining model quantity at all locations of the disk,
         at a specific time.
@@ -543,7 +543,10 @@ class chem_mod:
             quant = self.get_mol_dens(quant[1:],time)
         else:
             raise ValueError("The quantity %s was not found for this model."%(quant))
-        return quant
+
+        if mask is None:
+            mask = np.ones_like(quant).astype(bool)
+        return quant[mask]
     
     def z_quant(self,quant,R=100,time=0):
         '''
