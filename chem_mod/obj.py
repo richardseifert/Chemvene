@@ -35,7 +35,7 @@ class chem_mod:
             environ - string path to the environ/ directory used to run your
                       chemical model. (Must given it outdir/environ doesn't exist)
             inp     - string filename of the input file used to run your model.
-                      (Must be given if outdir/0io*.inp doesn't exits)
+                      (Must be given if outdir/0io* doesn't exits)
     '''
 
     ################################################################################
@@ -57,11 +57,11 @@ class chem_mod:
         if not inp is None:
             self.set_environ(environ)
         else:
-            outdir_0io_paths = glob.glob(self.outdir+'0io*.inp')
+            outdir_0io_paths = glob.glob(self.outdir+'0io*')
             if len(outdir_0io_paths) > 0:
                 self.set_inp(outdir_0io_paths[0].split('/')[-1])
             else:
-                raise FileNotFoundError("Could not determine .inp file to use for this model.")
+                raise FileNotFoundError("Could not determine 0io file to use for this model.")
         self.phys = DataFrame()
         self.radfields = {}
         self.abunds = {}
@@ -217,9 +217,18 @@ class chem_mod:
         object, self.phys
         '''
         env_paths = glob.glob(self.environ+'1environ*')
+        print(env_paths[0])
+
+        #Determine number of shells in model.
+        f1 = open(env_paths[0])
+        for i,line in enumerate(f1):
+            if i==2:
+                nshells = int(line.strip())
+                f1.close()
+                break
 
         dat = np.array([])
-        shells = np.array([np.arange(1,51)]).T
+        shells = np.array([np.arange(nshells)+1]).T
         for path in env_paths:
             d = np.loadtxt(path,skiprows=3)
             d = np.hstack([d,shells])
