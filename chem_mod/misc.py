@@ -18,7 +18,7 @@ def make_legend_axes(ax,pad=0.15):
     cbar_ax.tick_params(axis='y',which='major',direction='out')
     return cbar_ax
 
-def contour_points(x,y,z,nx,ny,ax=None,log=True,vmin=None,vmax=None,levels=25,fill=True,**kwargs):
+def contour_points(x,y,z,nx,ny,ax=None,log=True,vmin=None,vmax=None,levels=25,fill=True,cbar=True,**kwargs):
     '''
     General function for plotting contour maps given x, y, and z points.
         ARGUMENTS:
@@ -32,6 +32,7 @@ def contour_points(x,y,z,nx,ny,ax=None,log=True,vmin=None,vmax=None,levels=25,fi
             vmax   - Maximum z-value to distinguish in colormap. All values above this are
                      plotted the same color.
             levels - Array or int specifying contour levels.
+            cbar   - Boolean whether or not to display the colormap.
             kwargs - Any named arguments accepted by matplotlib.pyplot.contourf can be provided
                      and will be passed to contourf when it is called.
                      Common examples are: cmap, hatches, etc.
@@ -69,7 +70,7 @@ def contour_points(x,y,z,nx,ny,ax=None,log=True,vmin=None,vmax=None,levels=25,fi
             kwargs = dict(kwargs)
             kwargs['cmap'] = None
         cont = ax.contour(X,Y,Z,levels=levels,vmin=vmin,vmax=vmax,extend='both',**kwargs)
-    if fill:
+    if fill and cbar:
         cax = None # make_legend_axes(ax,pad=0.1)
         if log:
             cbar = plt.colorbar(cont,cax=cax,ticks=ticks,format=r'$10^{%4.1f}$')
