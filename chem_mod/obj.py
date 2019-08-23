@@ -882,7 +882,10 @@ class chem_mod:
             else:
                 self.profile_reac(rid,time=time,**kwargs)
 
-    def plot_best_reacs(self,strmol,n,R=None,zone=None,time=None,plot_mols=None,total=True,cmap_pro='Blues',cmap_des='Reds',load_n=None,ax=None):
+    def plot_best_reacs(self,strmol,n,R=None,zone=None,time=None,plot_mols=None,\
+                        total=True,cmap_pro='Blues',cmap_des='Reds',load_n=None,\
+                        ls_pro='--',ls_des='-.',ax=None):
+
         if not R is None and not zone is None:
             raise ValueError("Both R and zone cannot be given; give one or the other.")
         #Create axes.
@@ -919,9 +922,11 @@ class chem_mod:
         for rid,rate in rates:
             if rate >= 0:
                 c = cmap_pro(1-pro/n_pro)
+                ls = ls_pro
                 pro += 1
             else:
                 c = cmap_des(1-des/n_des)
+                ls = ls_des
                 des += 1
             print("Loading %d: %s, %15.7E"%(int(rid),self.get_reac_str(rid),rate))
             #try:
@@ -935,7 +940,7 @@ class chem_mod:
                 x,rt = self.R_quant(rid,zone=zone,time=time)
             if pro+des <= n:
                 #Only plot n rates.
-                ax.plot(x,rt,color=c,ls='--',label="%d: %s"%(rid,self.get_reac_str(rid,fmt='latex')))
+                ax.plot(x,rt,color=c,ls=ls,label="%d: %s"%(rid,self.get_reac_str(rid,fmt='latex')))
             if total:
                 try:
                     rt_pro
