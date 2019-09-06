@@ -410,7 +410,7 @@ class chem_mod:
         limedir = self.limedir(label)
         if not os.path.exists(limedir):
             os.makedirs(limedir)
-        times = list(set(self.abunds[strmol].columns))
+        times = np.sort(np.unique(self.abunds[strmol].columns))
         for i,time in enumerate(times):
             fname=limedir+strmol+'_time'+str(i)+'.dat'
             abu = np.array(self.abunds[strmol][time])
@@ -847,13 +847,10 @@ class chem_mod:
         if yaxis == 'z/r':
             Y = self.phys['zAU']/R
             ylabel = 'Z/R'
-        elif yaxis = 'zone'
+        elif yaxis == 'zone':
             Y = self.phys['zAU']/R
             Y = 50. - Y/np.nanmax(Y)*49.
             ylabel = 'Zone'
-        elif yaxis='sigma':
-            Y = self.get_
-            ylabel = '$\Sigma$ (g cm$^{-2}$)'
         else:
             Y = self.phys['zAU']
             ylabel = 'Z (AU)'
@@ -870,8 +867,6 @@ class chem_mod:
             ax.scatter(R,Y,s=1,color='black')
         ax.set_xlabel('R (AU)')
         ax.set_ylabel(ylabel)
-        if zone:
-            ax.set_ylim(50,1)
         return ax
 
     def profile_reac(self,reac,time=0,**kwargs):
