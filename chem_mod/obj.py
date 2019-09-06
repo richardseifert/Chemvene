@@ -556,6 +556,20 @@ class chem_mod:
         if mask is None:
             mask = np.ones_like(quant).astype(bool)
         return quant[mask]
+
+    def get_sigma(self):
+        R = self.phys['R']
+        zAU = self.phys['zAU']
+        rho = self.phys['rho']
+        
+        cumulative = {}
+        for r in R:
+            if not r in cumulative.keys():
+                cumulative[r] = 0.0
+
+        sort = np.argsort(zAU)
+        for i in range(len(R)):
+            pass
     
     def z_quant(self,quant,R=100,time=0):
         '''
@@ -811,7 +825,7 @@ class chem_mod:
     ################################## Plotting ####################################
     ################################################################################
 
-    def profile_quant(self,quant,time=0,vmin=None,vmax=None,plot_grid=False,zone=False,zor=False,**kwargs):
+    def profile_quant(self,quant,time=0,vmin=None,vmax=None,plot_grid=False,yaxis='z',**kwargs):
         '''
         Method for plotting disk profile in a specified quantity (e.g. Dust temperature, HCO+ abundance, etc.).
 
@@ -830,13 +844,16 @@ class chem_mod:
         '''
         quant = self.get_quant(quant,time)
         R = self.phys['R']
-        if zor:
+        if yaxis == 'z/r':
             Y = self.phys['zAU']/R
             ylabel = 'Z/R'
-        elif zone:
+        elif yaxis = 'zone'
             Y = self.phys['zAU']/R
             Y = 50. - Y/np.nanmax(Y)*49.
             ylabel = 'Zone'
+        elif yaxis='sigma':
+            Y = self.get_
+            ylabel = '$\Sigma$ (g cm$^{-2}$)'
         else:
             Y = self.phys['zAU']
             ylabel = 'Z (AU)'

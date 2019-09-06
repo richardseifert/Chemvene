@@ -73,9 +73,9 @@ def contour_points(x,y,z,nx,ny,ax=None,log=True,vmin=None,vmax=None,levels=25,fi
     if fill and cbar:
         cax = None # make_legend_axes(ax,pad=0.1)
         if log:
-            cbar = plt.colorbar(cont,cax=cax,ticks=ticks,format=r'$10^{%4.1f}$')
+            cbar = plt.colorbar(cont,cax=cax,ax=ax,ticks=ticks,format=r'$10^{%4.1f}$')
         else:
-            cbar = plt.colorbar(cont,cax=cax,ticks=ticks,format=r'$%4.2f$')
+            cbar = plt.colorbar(cont,cax=cax,ax=ax,ticks=ticks,format=r'$%4.2f$')
     return ax
 
 def remove_nan(x,z):
