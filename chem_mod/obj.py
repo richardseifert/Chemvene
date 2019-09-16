@@ -539,7 +539,6 @@ class chem_mod:
             #nearest = self.nearest_times(times)    #Times won't necessarily align with abunds columns. Figure that out first.
             nearest = times[np.argmin((times-time)**2)]
             quant = self.abunds[quant][nearest]
-            #print("Found quant in abundances.")
         elif quant in self.rates.keys():
             times = np.array(self.rates[quant].columns)
             #nearest = self.nearest_times(times)    #Times won't necessarily align with rates columns. Figure that out first.
@@ -547,7 +546,6 @@ class chem_mod:
             quant = self.rates[quant][nearest]
             if np.nanmean(quant) < 0:
                 quant = -quant
-            #print("Found quant in rates.")
         elif quant[0]=='n' and quant[1:] in self.abunds.keys():
             quant = self.get_mol_dens(quant[1:],time)
         else:
@@ -718,6 +716,22 @@ class chem_mod:
             cd[i] = 2*nint(z,n) #The 2 is to account for both halves of the disk.
         
         return R_vals,cd
+
+    def get_spec(self,field,r,z):
+        R = self.get_quant('R')
+        R_vals = np.unique(R)
+        nearest_R = R_vals[np.argmin(np.abs(R_vals-r))]
+        Z = self.get_quant('zAU')
+        Z_vals = Z_vals[R == nearest_R]
+        nearest_Z = Z_vals[np.argmin(np.abs(Z_vals-z))]
+        mask = (R == nearest_R) & (Z == nearest_Z)
+        
+        spec_all = self.radfields[field]
+        spec_vals = np.sort(spec_all.columns)
+        intensity_vals = np.zeros_like(spec_vals)
+        for i,sv in enumerate(spec_vals):
+            intensity_vals[i] = spec_all[sv][mask]
+        return spec_vals,intensity_vals
 
     ################################################################################
     ############################# Altering Model Data ##############################
