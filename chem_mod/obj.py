@@ -839,7 +839,7 @@ class chem_mod:
     ################################## Plotting ####################################
     ################################################################################
 
-    def profile_quant(self,quant,time=0,vmin=None,vmax=None,plot_grid=False,yaxis='z',**kwargs):
+    def profile_quant(self,quant,time=0,vmin=None,vmax=None,plot_grid=False,yaxis='z',xscale='linear',yscale='linear',**kwargs):
         '''
         Method for plotting disk profile in a specified quantity (e.g. Dust temperature, HCO+ abundance, etc.).
 
@@ -876,6 +876,8 @@ class chem_mod:
         ny = len(list(set(self.phys['shell'])))
 
         ax = contour_points(R,Y,quant,nx=nx,ny=ny,vmin=vmin,vmax=vmax,**kwargs)
+        ax.set_xscale(xscale)
+        ax.set_yscale(yscale)
 
         if plot_grid:
             ax.scatter(R,Y,s=1,color='black')
