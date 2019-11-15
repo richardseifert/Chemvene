@@ -18,7 +18,15 @@ def make_legend_axes(ax,pad=0.15):
     cbar_ax.tick_params(axis='y',which='major',direction='out')
     return cbar_ax
 
-def contour_points(x,y,z,nx,ny,ax=None,log=True,vmin=None,vmax=None,levels=25,fill=True,cbar=True,**kwargs):
+def get_contour_arr(x,nx,ny,sortx=None):
+    X = np.array(x).reshape((nx,ny))
+    if not sortx is None:
+        sortX = np.array(sortx).reshape((nx,ny))
+        sort = np.argsort(sortX[:,0])
+        X = X[sort,:]
+    return X
+
+def contour_points(x,y,z,nx,ny,ax=None,log=True,vmin=None,vmax=None,levels=25,fill=True,cbar=True,return_artist=False,**kwargs):
     '''
     General function for plotting contour maps given x, y, and z points.
         ARGUMENTS:
@@ -56,13 +64,9 @@ def contour_points(x,y,z,nx,ny,ax=None,log=True,vmin=None,vmax=None,levels=25,fi
     except TypeError:
         levels = np.linspace(vmin,vmax,levels)
         ticks  = np.linspace(vmin,vmax,10)
-    X = np.array(x).reshape((nx,ny))
-    Y = np.array(y).reshape((nx,ny))
-    Z = np.array(z).reshape((nx,ny))
-    sortx = np.argsort(X[:,0])
-    X = X[sortx,:]
-    Y = Y[sortx,:]
-    Z = Z[sortx,:]
+    X = get_contour_arr(x,nx,ny,sortx=x)
+    Y = get_contour_arr(y,nx,ny,sortx=x)
+    Z = get_contour_arr(z,nx,ny,sortx=x)
     if fill:
         cont = ax.contourf(X,Y,Z,levels=levels,vmin=vmin,vmax=vmax,extend='both',**kwargs)
     else:
@@ -76,6 +80,9 @@ def contour_points(x,y,z,nx,ny,ax=None,log=True,vmin=None,vmax=None,levels=25,fi
             cbar = plt.colorbar(cont,cax=cax,ax=ax,ticks=ticks,format=r'$10^{%4.1f}$')
         else:
             cbar = plt.colorbar(cont,cax=cax,ax=ax,ticks=ticks,format=r'$%4.2f$')
+
+    if return_artist:
+        return ax,cont
     return ax
 
 def remove_nan(x,z):

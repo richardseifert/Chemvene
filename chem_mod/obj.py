@@ -10,7 +10,8 @@ import os
 from .read.read_abunds import find_mol, load_mol_abund
 from .read.read_rates import load_rates, get_reac_str, total_rates
 from .read.read_radfields import load_radfield
-from .misc import contour_points, remove_nan, sigfig, iterable, nint
+from .read.read_lambda import read_levels,read_trans
+from .misc import contour_points, get_contour_arr, remove_nan, sigfig, iterable, nint
 from chem_mod import __path__ as pkg_path
 
 #Path to the Chemical Code Directory.
@@ -512,7 +513,7 @@ class chem_mod:
     ############################# Requesting Model Data ############################
     ################################################################################
 
-    def get_quant(self,quant,time=0,mask=None):
+    def get_quant(self,quant,time=0,mask=None,fmt='pandas'):
         '''
         Method for obtaining model quantity at all locations of the disk,
         at a specific time.
@@ -553,7 +554,29 @@ class chem_mod:
 
         if mask is None:
             mask = np.ones_like(quant).astype(bool)
-        return quant[mask]
+        elif fmt == 'contour':
+            raise ValueError("Cannot return contour-formatted arrays with mask")
+
+        if fmt == 'pandas':
+            return quant[mask]
+        elif fmt == 'contour':
+            nx = len(list(set(self.phys['R'])))
+            ny = len(list(set(self.phys['shell'])))
+            return get_contour_arr(quant,nx,ny,sortx=self.phys['R']) 
+        else:
+            raise ValueError("Unrecognized format: %s"%(fmt))
+
+    def get_spatial(self,yaxis='z',fmt='pandas'):
+        R = self.get_quant('R',fmt=fmt)
+
+        Y = self.get_quant('zAU',fmt=fmt)
+        if yaxis == 'z/r':
+            Y = Y/R
+        elif yaxis == 'zone':
+            Y = 50. - (Y/R)/np.nanmax(Y)*49.
+        elif not yaxis=='z':
+            raise ValueError("Unrecognized yaxis: %s"%(yaxis))
+        return R,Y
 
     def get_sigma(self):
         R = self.phys['R']
@@ -717,6 +740,84 @@ class chem_mod:
         
         return R_vals,cd
 
+    def optical_depth(self,strmol,trans,lambdafile=None,time=0):
+        '''
+        Method for producing columnd density profile for a given species.
+
+        ARGUMENTS:
+            strmol - string of the molecule you want to get column density of.
+            time   - timestep you want columnd density at.
+        RETURNS:
+            R_vals - Radius values.
+            cd     - Corresponding column densities at those radii.
+        '''
+        #Define some relevant constants
+        h = 6.6260755e-27 #erg s
+        c = 2.99792458e10 #cm s^-1
+        kb = 1.380658e-16 #erg K^-1
+
+        #Load number density of strmol (cm^-3).
+        try:
+            nX = self.get_quant('n'+strmol,time=time)
+        except:
+            nX = self.get_quant(strmol,time=time)
+            
+        #Load corresponding disk locations.
+        zone = np.array(self.get_quant('shell'))
+        zone_vals = np.unique(zone)
+        print(zone_vals)
+        zone_vals = zone_vals[np.argsort(zone_vals)]
+        print(zone_vals)
+        Rarr = np.array(self.get_quant('R'))
+        Zarr = np.array(self.get_quant('zAU'))
+        # and temperatures!
+        Tarr = np.array(self.get_quant('Tgas'))
+
+        #Read lambda file
+        levels = read_levels(lambdafile)
+        transitions = read_trans(lambdafile)
+        #  Get list of energies and statistical weights for each level.
+        En = levels[:,1]*h*c
+        gn = levels[:,2]
+        #  Get constants for this transition.
+        A = transitions[trans,3] #Aul for this transition.
+        print('Einstein A (s^-1)',A)
+        freq = transitions[trans,4]*1e9
+        print('Frequency:',freq/1e9,'GHz')
+        lam = c/freq
+        print('Wavelength:',lam,'cm')
+        #   get upper- and lower-state energies and statistical weights
+        Elower=En[0]
+        glower=gn[0]
+        Eupper=En[1]
+        gupper=gn[1]
+        for lid,E,g in zip(levels[:,0],En,gn):
+            if lid==transitions[trans,1]:
+                Eupper = E
+                gupper = g
+            if lid==transitions[trans,2]:
+                Elower = E
+                glower = g
+        grat = gupper/glower
+
+        #Functions so evaluate at each location.
+        partition_func = lambda T,E=En: np.array([np.sum(np.exp(-E/(kb*temp))) for temp in T])
+        integrand = lambda n,T: n/partition_func(T)*glower*np.exp(-Elower/(kb*T))*(1-np.exp(-h*freq/(kb*T)))
+
+        tau = np.zeros_like(zone)
+        for i,zn1,zn2 in zip(np.arange(len(zone_vals)-1),zone_vals[:-1],zone_vals[1:]):
+            in_zn1 = zone == zn1
+            in_zn2 = zone == zn2
+            n1 = nX[in_zn1]
+            n2 = nX[in_zn2]
+            Z1 = Zarr[in_zn1]
+            Z2 = Zarr[in_zn2]
+            T1 = Tarr[in_zn1]
+            T2 = Tarr[in_zn2]
+            tau[in_zn2] = tau[in_zn1] + grat*A/(8*np.pi) * lam**2 * 0.5*(Z1-Z2)*(integrand(n1,T1)+integrand(n2,T2))
+
+        return tau
+            
     def get_spec(self,field,r,z):
         R = self.get_quant('R')
         R_vals = np.unique(R)
@@ -839,7 +940,7 @@ class chem_mod:
     ################################## Plotting ####################################
     ################################################################################
 
-    def profile_quant(self,quant,time=0,vmin=None,vmax=None,plot_grid=False,yaxis='z',xscale='linear',yscale='linear',**kwargs):
+    def profile_quant(self,quant,time=0,vmin=None,vmax=None,plot_grid=False,yaxis='z',xscale='linear',yscale='linear',return_artist=False,**kwargs):
         '''
         Method for plotting disk profile in a specified quantity (e.g. Dust temperature, HCO+ abundance, etc.).
 
@@ -857,16 +958,12 @@ class chem_mod:
             ax        - The axes object with the contours plotted.
         '''
         quant = self.get_quant(quant,time)
-        R = self.phys['R']
+        R,Y = self.get_spatial(yaxis=yaxis)
         if yaxis == 'z/r':
-            Y = self.phys['zAU']/R
             ylabel = 'Z/R'
         elif yaxis == 'zone':
-            Y = self.phys['zAU']/R
-            Y = 50. - Y/np.nanmax(Y)*49.
             ylabel = 'Zone'
         else:
-            Y = self.phys['zAU']
             ylabel = 'Z (AU)'
         if vmin is None:
             vmin = np.nanmin(quant[quant>0])
@@ -875,7 +972,10 @@ class chem_mod:
         nx = len(list(set(self.phys['R'])))
         ny = len(list(set(self.phys['shell'])))
 
-        ax = contour_points(R,Y,quant,nx=nx,ny=ny,vmin=vmin,vmax=vmax,**kwargs)
+        if return_artist:
+            ax,cont = contour_points(R,Y,quant,nx=nx,ny=ny,vmin=vmin,vmax=vmax,return_artist=True,**kwargs)
+        else:
+            ax = contour_points(R,Y,quant,nx=nx,ny=ny,vmin=vmin,vmax=vmax,**kwargs)
         ax.set_xscale(xscale)
         ax.set_yscale(yscale)
 
@@ -883,6 +983,9 @@ class chem_mod:
             ax.scatter(R,Y,s=1,color='black')
         ax.set_xlabel('R (AU)')
         ax.set_ylabel(ylabel)
+
+        if return_artist:
+            return ax,cont
         return ax
 
     def profile_reac(self,reac,time=0,**kwargs):
