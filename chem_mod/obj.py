@@ -339,7 +339,8 @@ class chem_mod:
             tbl['R'] /= mau
             tbl['zAU'] /= mau
             merged = self.merge(tbl)
-            self.abunds[strmol][time] = merged['abund']
+            self.abunds[strmol][time] = merged['abund']/2
+            # ^ factor of 2 because LIME wants abundance per H2 instead of per H
         #Tweak times to be exact values from self.times.
         self.abunds[strmol] = self.set_times(self.abunds[strmol])
 
@@ -414,12 +415,13 @@ class chem_mod:
         times = np.sort(np.unique(self.abunds[strmol].columns))
         for i,time in enumerate(times):
             fname=limedir+strmol+'_time'+str(i)+'.dat'
-            abu = np.array(self.abunds[strmol][time])
-
-            abu[(savetbl['rho'] <= 1e4) | (abu < 1e-28)] = 0.0
+            abu = 2*np.array(self.abunds[strmol][time]) 
+            # ^ factor of 2 because LIME wants abundance per H2, not per H.
+            abu[(savetbl['rho'] <= 1e2) | (abu < 1e-32)] = 0.0
             savetbl.loc[:,'abund'] = abu
             no_nan = remove_nan(self.phys['R'],abu)
             savearr = np.array(savetbl)[no_nan]
+            
             np.savetxt(fname,savearr,fmt='%15.7E')
 
     ################################################################################
