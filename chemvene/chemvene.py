@@ -12,7 +12,7 @@ from .read.read_rates import load_rates, get_reac_str, total_rates
 from .read.read_radfields import load_radfield
 from .read.read_lambda import read_levels,read_trans
 from .misc import contour_points, get_contour_arr, remove_nan, sigfig, iterable, nint
-from chem_mod import __path__ as pkg_path
+from chemvene import __path__ as pkg_path
 
 #Path to the Chemical Code Directory.
 #bsd = '/bucket/ras8qnr/MasterChem_Phobos/'
