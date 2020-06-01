@@ -173,7 +173,7 @@ class chem_mod:
         f.readline()
         t_end = float(f.readline().split()[0].replace('D','E'))
         t_start = float(f.readline().split()[0].replace('D','E'))
-        nsteps = float(f.readline().split()[0])
+        nsteps = int(f.readline().split()[0])
         self.times = sigfig(np.logspace(np.log10(t_start),np.log10(t_end),nsteps), 4)
 
     def nearest_times(self,times,itr=False):
