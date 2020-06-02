@@ -205,6 +205,8 @@ class chem_mod:
             return nearest[0]
         else:
             return nearest
+    def nearest_time_i(self,time):
+        return np.argmin( (self.times - time)**2 )
 
     ################################################################################
     ########################## Handling Physical Model #############################
@@ -378,7 +380,7 @@ class chem_mod:
             #Write abundances in limefg format.
             self.write_mol(strmol)
 
-    def write_mol(self,strmol,label=None):
+    def write_mol(self,strmol,label=None,savedir=None):
         '''
         Method that writes abundances for a species in the limefg format
         used by LIME radiative transfer.
@@ -408,12 +410,16 @@ class chem_mod:
         savetbl.loc[:,'R'] *= mau
         savetbl.loc[:,'zAU'] *= mau
 
-        
-        limedir = self.limedir(label)
+        if savedir is None: 
+            limedir = self.limedir(label)
+        else:
+            limedir = savedir
+            if limedir[-1]!='/': limedir=limedir+'/'
         if not os.path.exists(limedir):
             os.makedirs(limedir)
         times = np.sort(np.unique(self.abunds[strmol].columns))
-        for i,time in enumerate(times):
+        for time in times:
+            i = self.nearest_time_i(time)
             fname=limedir+strmol+'_time'+str(i)+'.dat'
             abu = 2*np.array(self.abunds[strmol][time]) 
             # ^ factor of 2 because LIME wants abundance per H2, not per H.
