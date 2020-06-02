@@ -12,7 +12,7 @@ from .read.read_rates import load_rates, get_reac_str, total_rates
 from .read.read_radfields import load_radfield
 from .read.read_lambda import read_levels,read_trans
 from .misc import contour_points, get_contour_arr, remove_nan, sigfig, iterable, nint
-from chemvene import __path__ as pkg_path
+from . import __path__ as pkg_path
 
 #Path to the Chemical Code Directory.
 #bsd = '/bucket/ras8qnr/MasterChem_Phobos/'
@@ -220,7 +220,6 @@ class chem_mod:
         object, self.phys
         '''
         env_paths = glob.glob(self.environ+'1environ*')
-        print(env_paths[0])
 
         #Determine number of shells in model.
         f1 = open(env_paths[0])
@@ -380,7 +379,7 @@ class chem_mod:
             #Write abundances in limefg format.
             self.write_mol(strmol)
 
-    def write_mol(self,strmol,label=None,savedir=None):
+    def write_mol(self,strmol,label=None,savedir=None,tag=''):
         '''
         Method that writes abundances for a species in the limefg format
         used by LIME radiative transfer.
@@ -420,7 +419,7 @@ class chem_mod:
         times = np.sort(np.unique(self.abunds[strmol].columns))
         for time in times:
             i = self.nearest_time_i(time)
-            fname=limedir+strmol+'_time'+str(i)+'.dat'
+            fname=limedir+tag+strmol+'_time'+str(i)+'.dat'
             abu = 2*np.array(self.abunds[strmol][time]) 
             # ^ factor of 2 because LIME wants abundance per H2, not per H.
             abu[(savetbl['rho'] <= 1e2) | (abu < 1e-32)] = 0.0
@@ -773,9 +772,7 @@ class chem_mod:
         #Load corresponding disk locations.
         zone = np.array(self.get_quant('shell'))
         zone_vals = np.unique(zone)
-        print(zone_vals)
         zone_vals = zone_vals[np.argsort(zone_vals)]
-        print(zone_vals)
         Rarr = np.array(self.get_quant('R'))
         Zarr = np.array(self.get_quant('zAU'))
         # and temperatures!
@@ -1068,11 +1065,7 @@ class chem_mod:
                 ls = ls_des
                 des += 1
             print("Loading %d: %s, %15.7E"%(int(rid),self.get_reac_str(rid),rate))
-            #try:
             self.load_reac(strmol,rid,times=time,radii=R,zones=zone)
-            #except IndexError:
-            #    print ("Warning: Couldn't load %s"%(rid))
-            #    continue
             if not R is None:
                 x,rt = self.z_quant(rid,R=R,time=time)
             if not zone is None:
