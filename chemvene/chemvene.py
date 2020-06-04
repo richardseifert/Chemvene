@@ -565,7 +565,7 @@ class chem_mod:
             raise ValueError("Cannot return contour-formatted arrays with mask")
 
         if fmt == 'pandas':
-            return quant[mask]
+            return np.array(quant[mask])
         elif fmt == 'contour':
             nx = len(list(set(self.phys['R'])))
             ny = len(list(set(self.phys['shell'])))
