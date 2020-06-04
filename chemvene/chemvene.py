@@ -291,7 +291,7 @@ class chem_mod:
         if not strmol in self.abunds:
             self.load_mol(strmol,*args,**kwargs)
 
-    def load_mol(self,strmol,times=None):
+    def load_mol(self,strmol,times=None,write=True):
         '''
         Method that loads abundances of a given species, 
         potentially at a given time or times.
@@ -312,7 +312,7 @@ class chem_mod:
         limedir = self.limedir(strmol)
         if not os.path.exists(limedir):
             #If not in limefg, load from scratch (and write to limefg).
-            self.read_mol(strmol,write=True)
+            self.read_mol(strmol,write=write)
             return
 
         #Load from limefg
@@ -379,7 +379,7 @@ class chem_mod:
             #Write abundances in limefg format.
             self.write_mol(strmol)
 
-    def write_mol(self,strmol,label=None,savedir=None,tag=''):
+    def write_mol(self,strmol,times=None,label=None,savedir=None,tag=''):
         '''
         Method that writes abundances for a species in the limefg format
         used by LIME radiative transfer.
@@ -416,7 +416,10 @@ class chem_mod:
             if limedir[-1]!='/': limedir=limedir+'/'
         if not os.path.exists(limedir):
             os.makedirs(limedir)
-        times = np.sort(np.unique(self.abunds[strmol].columns))
+        if not times is None:
+            times = self.nearest_times(times,itr=True)
+        else:
+            times = np.sort(np.unique(self.abunds[strmol].columns))
         for time in times:
             i = self.nearest_time_i(time)
             fname=limedir+tag+strmol+'_time'+str(i)+'.dat'
