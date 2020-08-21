@@ -559,6 +559,25 @@ class chem_mod:
                 quant = -quant
         elif quant[0]=='n' and quant[1:] in self.abunds.keys():
             quant = self.get_mol_dens(quant[1:],time)
+        elif quant in self.radfields.keys():
+            quant = self.radfields[quant]
+        elif quant.split('_')[0] in self.radfields.keys():
+            field = quant.split('_')[0]
+            opt = quant.split('_')[1]
+            if opt in self.radfields[field].columns:
+                return self.radfields[field][opt]
+            elif opt == 'intphot':
+                sarr = np.sort(self.radfields[field].columns)
+                farrs = [self.radfields[field][s] for s in sarr]
+                fint = np.sum([(f1+f2)*(s2-s1)/2. for s1,s2,f1,f2 in zip(sarr[:-1],sarr[1:],farrs[:-1],farrs[1:])],axis=0)
+                return fint
+            elif opt == 'interg':
+                erg_per_phot = {'xray':lambda s: s*1.6022e-9, 'uv':lambda s:6.626e-27*3e10/(s/1e8),'isrf':lambda s:6.626e-27*3e10/(s/1e8)}
+                sarr = np.sort(self.radfields[field].columns)
+                farrs = [erg_per_phot[field](s)*self.radfields[field][s] for s in sarr]
+                fint = np.sum([(f1+f2)*(s2-s1)/2. for s1,s2,f1,f2 in zip(sarr[:-1],sarr[1:],farrs[:-1],farrs[1:])],axis=0)
+                return fint
+                
         else:
             raise ValueError("The quantity %s was not found for this model."%(quant))
 
@@ -583,7 +602,7 @@ class chem_mod:
         if yaxis == 'z/r':
             Y = Y/R
         elif yaxis == 'zone':
-            Y = 50. - (Y/R)/np.nanmax(Y)*49.
+            Y = self.phys['shell']#Nzones - (Y/R)/np.nanmax(Y/R)*Nzones
         elif not yaxis=='z':
             raise ValueError("Unrecognized yaxis: %s"%(yaxis))
         return R,Y
@@ -1099,7 +1118,7 @@ class chem_mod:
             sax.set_yscale('log',nonposy='clip')
             for mol in plot_mols:
                 self.load_mol(mol,times=time)
-                z,ab = self.z_quant(mol,R=R,time=time)
+                z,ab = self.z_quant(mol,R=R,time=time) #BUG for zone cuts this breaks, R=None.
                 sax.plot(z,ab,label=mol)
 
         ax.legend(loc=0)
