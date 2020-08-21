@@ -15,7 +15,6 @@ from .misc import contour_points, get_contour_arr, remove_nan, sigfig, iterable,
 from . import __path__ as pkg_path
 
 #Path to the Chemical Code Directory.
-#bsd = '/bucket/ras8qnr/MasterChem_Phobos/'
 bsd = '/home/ras8qnr/MasterChem_Rivanna/'
 
 #Some constants that get used throughout.
@@ -43,10 +42,14 @@ class chem_mod:
     ################################ Initialization ################################
     ################################################################################
 
-    def __init__(self,outdir,environ=None,inp=None,bsd=bsd):
+    def __init__(self,outdir,environ=None,inp=None,base_dir=None):
         self.outdir = outdir
         if self.outdir[-1] != '/':
             self.outdir += '/'
+
+        if base_dir is None:
+            base_dir = bsd #Change later to global package base_dir default.
+        self.bsd = base_dir
 
         if not environ is None:
             self.set_environ(environ)
@@ -79,8 +82,8 @@ class chem_mod:
         self.inp_paths = {k:None for k in ['spec','reac','uv','xray','isrf','rn']}
         d = np.genfromtxt(self.inp,dtype=str)
         for i,k in enumerate(self.inp_paths.keys()):
-            if os.path.exists(bsd+d[i]):
-                self.inp_paths[k] = bsd+d[i]
+            if os.path.exists(self.bsd+d[i]):
+                self.inp_paths[k] = self.bsd+d[i]
 
     def copy(self):
         '''

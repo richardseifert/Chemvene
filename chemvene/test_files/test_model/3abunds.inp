@@ -1,0 +1,9 @@
+# initial abundances, n(X)/n(H)
+# !! E abundance is calculated from ion abundances
+# !! DO NOT include it as a separate species in this file.  
+# Initial TW Hya abundances. Taken from Cleeves et al. 2015.
+H2          5.000D-01
+He          1.400D-01
+H3+         1.000D-08
+GRAIN0      6.000D-12
+GRAIN       6.000D-12

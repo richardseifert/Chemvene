@@ -1,0 +1,7 @@
+# input & output files:
+rspecies_HHe.dat                            # file with species
+rreacs_HHe.dat                              # file with reactions
+uv_photons_small.dat                        # file with uvfield
+xray_photons_small.dat                      # file with xrfield
+None                                        # file with ISRF
+None                                        # Radionuclide Ion Rate

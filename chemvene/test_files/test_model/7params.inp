@@ -1,0 +1,10 @@
+#Power Law Abundance. Implement radial power law abundances
+# according to Zhang et al. 2019 for IM Lup.
+pla_mols  = None
+pla_depl  = 20.
+pla_gam   = -1.16
+pla_mar   = 600.
+pla_mir   = 32.
+inr_mols  = None
+inr_rad   = 32.
+inr_ab    = 1.40E-4
