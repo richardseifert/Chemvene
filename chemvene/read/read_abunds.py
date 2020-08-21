@@ -1,9 +1,18 @@
 import numpy as np
 import glob
-import time
 
+################################################################################
+############################# Read Abundances ##################################
+################################################################################
 def find_mol(fpaths, strmol):
-    strmol = ' '+strmol.lstrip().rstrip()+' ' #Pad strmol with spaces to avoid similar molecule names.
+    '''
+    Locate the abundances of the requested molecule, strmol. Return start row, 
+    number of rows, column index, and associated time steps. 
+    
+    Broken radii may present incorrect times and abundances, so search each file 
+    until a valid file is found.
+    '''
+    strmol = ' '+strmol.lstrip().rstrip()+' ' #Pad strmol for search
     fi = 0
     bad_times = True
     #For some files, all the times are 0 and abundances are nan.
@@ -14,6 +23,11 @@ def find_mol(fpaths, strmol):
         fi += 1
     return mol_head,nrows,col,times
 def find_mol_helper(fpath,strmol):
+    '''
+    For a given abundance file, locate the abundances of the requested molecule,
+    strmol. Return start row, number of rows, column index, and associated time
+    steps.
+    '''
     #Read lines from file.
     f = open(fpath)
     lines = f.read().split('\n')
@@ -41,6 +55,9 @@ def find_mol_helper(fpath,strmol):
     return mol_head,nrows,col,times
 
 def load_mol(fpath,strmol,mol_head=None,nrows=None,col=None):
+    '''
+    Load abundances for strmol from the abundance file fpath.
+    '''
     if mol_head is None or nrows is None or col is None:
         mol_head,nrows,col,_ = find_mol(fpath,strmol)
     dat = np.genfromtxt(fpath, comments='--',skip_header=mol_head,max_rows=nrows,dtype=str)
@@ -59,7 +76,7 @@ def load_mol_abund(direc,strmol):
     mol_start,nrows,col,Times = find_mol(fpaths,strmol)
     nTimes = len(Times)
 
-    #Get list of rad.
+    #Get list of radii.
     fpaths = glob.glob(direc+"r*_1.out")
     radnam = np.array([fpath.split("/")[-1].split("_e1")[0][1:] for fpath in fpaths])
     radval = np.array([float(strg.rstrip()) for strg in radnam])
@@ -82,14 +99,22 @@ def load_mol_abund(direc,strmol):
     mol_start,nrows,col,_ = find_mol(fpaths,strmol)
     nTimes = len(Times)
 
+    #Find all abundance files.
     fpaths = glob.glob(direc+'r*.out')
+    #From each file, 4-D datapoints (X,y) will be extracted.
+    #
+    #   X = (t,R,z), t - Time in yr
+    #                R - Radius in AU
+    #                z - Height zone, unitless. min z is the disk surface
+    #                                           max z is the disk midplane
+    #   y = ab       ab- Abundance in number per H atom.
+    #
+    #Create array to store points.
     dat = np.zeros((len(fpaths)*nTimes,4))
     row_i = 0
     for i,path in enumerate(fpaths):
-    #    print("Looking at ",path)
         row_f = row_i+nTimes
         dat[row_i:row_f,0] = Times
-    #    print("Times set:",row_i,row_f)
         try:
             rau,zau,Tg,Td,rho = load_physical(path) 
         except TypeError:
@@ -101,13 +126,15 @@ def load_mol_abund(direc,strmol):
         dat[row_i:row_f,1] = rau
         dat[row_i:row_f,2] = z
         if z == min_z:
-            dat[row_i:row_f,3] = 0.
+            dat[row_i:row_f,3] = 0. #Assert surface abundance is 0.
         else:
             dat[row_i:row_f,3] = ab
         row_i = row_f
-    return dat 
-
+    return dat
 def load_physical(fpath):
+    '''
+    For a given abundance file, read physical conditions from file header.
+    '''
     f = open(fpath)
     line = f.readline()
     eof_count = 0

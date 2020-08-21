@@ -7,7 +7,7 @@ import glob
 import os
 
 #Package Imports
-from .read.read_abunds import find_mol, load_mol_abund
+from .read.read_abunds import load_mol_abund
 from .read.read_rates import load_rates, get_reac_str, total_rates
 from .read.read_radfields import load_radfield
 from .read.read_lambda import read_levels,read_trans
