@@ -28,7 +28,7 @@ class chem_mod:
         the disk chemical modeling code presented in Fogel et al. 2011.
         For more in-depth documentation, visit 
 
-                https://github.com/richardseifert/chem_mod
+                https://github.com/richardseifert/Chemvene
 
         To create an instance, the following three paths must be provided.
             outdir  - string path to the runs/ directory where model output is
@@ -771,7 +771,7 @@ class chem_mod:
 
     def optical_depth(self,strmol,trans,lambdafile=None,time=0):
         '''
-        Method for producing columnd density profile for a given species.
+        Method for producing column density profile for a given species.
 
         ARGUMENTS:
             strmol - string of the molecule you want to get column density of.

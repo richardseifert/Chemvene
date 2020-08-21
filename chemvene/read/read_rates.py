@@ -4,18 +4,25 @@ import glob
 
 def load_rates(direc,strmol,reacs=None,times=None,radii=None,zones=None,min_rate = 0.):
     '''
-    Function for loading reaction rate .rout files from the chemical code.
+    Function for loading reaction rates from a given directory for all reactions involving
+     a molecule strmol.
+
+    Loading can be drastically sped up by targeting specific radii, and moderately sped up 
+     by targeting specific zones, times, or reaction IDs.
     
     ARGUMENTS:
         direc - String path to directory containing .rout files.
         strmol - Molecule name prefix on .rout files.
-        reacs - Reaction IDs to load rates for.
-        times - Values of time to consider.
-        radii - NEED TO ADD. Values of radius to consider.
+        reacs - Reaction IDs to load rates for. Default will load all rates found.
+        times - Time steps to load rates for. Default all.
+        radii - Radii to load rates for. 
+              Rates are stored in files by radius, so specifiying radii drastically 
+              speeds load time by limiting number of files to be opened.
+        zones - Zones to load rates for.
         min_rate - The minimum reaction rate to load.
-        eventually:
-            times -  t = 1-1E6 disk ages to load rates for.
     '''
+
+    #Ensure input datatypes!
     try:
         iter(reacs)
     except TypeError:
@@ -35,8 +42,8 @@ def load_rates(direc,strmol,reacs=None,times=None,radii=None,zones=None,min_rate
         if not radii is None:
             radii = [radii]
             radii = np.array(radii).astype(float)
-    #Get list of rad
-    print(direc+strmol+'_*.rout')
+
+    #Get list of radii
     fpaths = glob.glob(direc+strmol+"_*.rout")
     radnam = np.array([fpath.split("/")[-1].split("_")[-1].split('.rout')[0] for fpath in fpaths])
     radval = np.array([float(strg.rstrip()) for strg in radnam])
@@ -46,6 +53,7 @@ def load_rates(direc,strmol,reacs=None,times=None,radii=None,zones=None,min_rate
     radval = radval[sort]
     fpaths = np.array(fpaths)[sort]
 
+    #Only use requested radii.
     if not radii is None:
         #Only load radii specified.
         nearest = np.argmin([ (radval - r)**2 for r in radii ], axis=1)
@@ -53,7 +61,7 @@ def load_rates(direc,strmol,reacs=None,times=None,radii=None,zones=None,min_rate
         radval = radval[nearest]
         fpaths = fpaths[nearest]
 
-
+    #Load rates!
     dat = np.array([])
     for R,fpath in zip(radval,fpaths):
         a = load_rates_single(fpath,reacs,times,zones,min_rate)
@@ -67,7 +75,17 @@ def load_rates(direc,strmol,reacs=None,times=None,radii=None,zones=None,min_rate
         
     return dat
 
-def load_rates_single(fpath,reacs,times,zones=None,min_rate=0.):
+def load_rates_single(fpath,reacs=None,times=None,zones=None,min_rate=0.):
+    '''
+    Load reaction rates for a single-radius .rout file!
+
+    ARGUMENTS:
+        reacs - Reaction IDs to load rates for. Default will load all rates found.
+        times - Time steps to load rates for. Default all.
+        zones - Zones to load rates for.
+        min_rate - The minimum reaction rate to load.
+    '''
+
     try:
         iter(zones)
         zones = np.array(zones).astype(int)
@@ -106,7 +124,7 @@ def load_rates_single(fpath,reacs,times,zones=None,min_rate=0.):
 
 def total_rates(direc,strmol,times=None,radii=None,zones=None,min_rate = 0.):
     '''
-    Function for loading reaction rate .rout files from the chemical code.
+    Function for quickly summing reaction rates without performing a full load.
     
     ARGUMENT:
         direc - String path to directory containing .rout files.
@@ -155,13 +173,12 @@ def total_rates(direc,strmol,times=None,radii=None,zones=None,min_rate = 0.):
         radval = radval[nearest]
         fpaths = fpaths[nearest]
 
-    rate_dict = {}
+    rate_dict = {} #Dictionary to store summed rates.
     keep = lambda v,vals,cast=lambda s:s : (vals is None) or (v in vals) or (cast(v) in vals)
     keep_time = lambda t: (times is None) or (np.abs(np.nanmin(np.log10(float(t))-np.log10(times))) < 1e-3)
     npath = 0
     for fpath in fpaths:
         npath+=1
-        #print("%d / %d"%(npath,len(fpaths)))
         #Read rates file.
         f = open(fpath)
         lines = list(filter(None,f.read().split('\n')))
@@ -246,14 +263,3 @@ def get_reac_str(fpath,reac_id,fmt='ascii'):
         # Return plain ascii string.
         strg = ' + '.join(species[:2])+' -> '+' + '.join(species[2:])
     return strg
-                
-if __name__ == '__main__':
-    fpath = '../D_tests/ssm_r146.0626_D/HCO+_e1_146.0626.rout'
-    fpath = '/bucket/ras8qnr/MasterChem_Phobos/runs/ssm/e1/rates/H3+_e1_372.4317.rout'
-    fpath = '/bucket/ras8qnr/MasterChem_Phobos/runs/ssm/e1/rates/HCO+_e1_594.7036.rout'
-    direc = '/Users/ras8qnr/Research/IM_Lup/mchem_snap/runs/ssm/e1/rates/'
-    #rtmat = load_rates(fpath,min_rate=1e-17,reacs=8549,times=['4.230e+05'])
-    #rtmat = load_rates(direc,"HCO+",min_rate=1e-17,times=3.34,reacs=5359)
-    #rates = total_rates(direc,"HCO+",times=4.92e5)
-    #rtmat = load_rates(fpath,min_rate=1e-17,reacs=8549)
-    #np.savetxt("test.dat",rtmat)
