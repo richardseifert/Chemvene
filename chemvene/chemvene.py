@@ -14,8 +14,25 @@ from .read.read_lambda import read_levels,read_trans
 from .misc import contour_points, get_contour_arr, remove_nan, sigfig, iterable, nint
 from . import __path__ as pkg_path
 
-#Path to the Chemical Code Directory.
-bsd = '/home/ras8qnr/MasterChem_Rivanna/'
+#Functions for setting and getting global directory path
+# where chemical code is located, base_dir
+def set_base_dir(direc):
+    if direc[-1]!='/':
+        direc = direc+'/'
+    fpath = pkg_path[0]+'/pkg_files/base_dir.txt'
+    f = open(fpath,'w')
+    f.write(direc)
+    f.close()
+def get_base_dir():
+    fpath = pkg_path[0]+'/pkg_files/base_dir.txt'
+    try:
+        f = open(fpath)
+        direc = f.read()
+        f.close()
+        assert os.path.exists(direc)
+    except (OSError, AssertionError) as e:
+        direc = pkg_path[0]+'/test_files/'
+    return direc
 
 #Some constants that get used throughout.
 mp = 1.67e-24  #Mass of proton in g
@@ -48,8 +65,9 @@ class chem_mod:
             self.outdir += '/'
 
         if base_dir is None:
-            base_dir = bsd #Change later to global package base_dir default.
-        self.bsd = base_dir
+            self.bsd = get_base_dir()
+        else:
+            self.bsd = base_dir
 
         if not environ is None:
             self.set_environ(environ)
