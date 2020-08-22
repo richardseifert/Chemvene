@@ -129,4 +129,4 @@ dmypy.json
 .pyre/
 
 # Other!
-chemvene/test_model/e1/limefg_*
+chemvene/test_files/test_model/e1/limefg_*
