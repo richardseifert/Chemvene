@@ -1,2 +1,2 @@
-include chemvene/pkg_files/*
-include chemvene/test_files/*
+graft chemvene/pkg_files
+graft chemvene/test_files
