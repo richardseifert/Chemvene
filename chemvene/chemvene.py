@@ -318,7 +318,7 @@ class chem_mod:
         potentially at a given time or times.
 
         If limefg exists for this species (it has previously been loaded and saved),
-        then species if loaded from this (quicker). Otherwise, species is loaded
+        then species is loaded from this (quicker). Otherwise, species is loaded
         directly from r*.out files.
 
         ARGUMENTS:
@@ -558,47 +558,21 @@ class chem_mod:
             time  - Float value of the time at which to get the quantity.
         RETURNS:
             1D array of quant values corresponding to R and shell/zAU columns of self.phys
-            ## Eventually I'm going to add an option to reshape the output into a 2D array
-               with constant R columns and constant shell rows. ##
         '''
         if iterable(quant):
             pass #quant is already 2D values.
-        elif quant in self.phys.columns:
+        elif self._validate_phys(quant):
             quant = self.phys[quant]
-            #("Found quant in physical.")
-        elif quant in self.abunds.keys():
-            times = np.array(self.abunds[quant].columns)
-            #nearest = self.nearest_times(times)    #Times won't necessarily align with abunds columns. Figure that out first.
-            nearest = times[np.argmin((times-time)**2)]
-            quant = self.abunds[quant][nearest]
+        elif self._validate_abun(quant,time=time):
+            quant = self._get_abun(quant,time=time)
         elif quant in self.rates.keys():
             times = np.array(self.rates[quant].columns)
-            #nearest = self.nearest_times(times)    #Times won't necessarily align with rates columns. Figure that out first.
             nearest = times[np.argmin((times-time)**2)]
             quant = self.rates[quant][nearest]
             if np.nanmean(quant) < 0:
                 quant = -quant
-        elif quant[0]=='n' and quant[1:] in self.abunds.keys():
-            quant = self.get_mol_dens(quant[1:],time)
-        elif quant in self.radfields.keys():
-            quant = self.radfields[quant]
-        elif quant.split('_')[0] in self.radfields.keys():
-            field = quant.split('_')[0]
-            opt = quant.split('_')[1]
-            if opt in self.radfields[field].columns:
-                return self.radfields[field][opt]
-            elif opt == 'intphot':
-                sarr = np.sort(self.radfields[field].columns)
-                farrs = [self.radfields[field][s] for s in sarr]
-                fint = np.sum([(f1+f2)*(s2-s1)/2. for s1,s2,f1,f2 in zip(sarr[:-1],sarr[1:],farrs[:-1],farrs[1:])],axis=0)
-                return fint
-            elif opt == 'interg':
-                erg_per_phot = {'xray':lambda s: s*1.6022e-9, 'uv':lambda s:6.626e-27*3e10/(s/1e8),'isrf':lambda s:6.626e-27*3e10/(s/1e8)}
-                sarr = np.sort(self.radfields[field].columns)
-                farrs = [erg_per_phot[field](s)*self.radfields[field][s] for s in sarr]
-                fint = np.sum([(f1+f2)*(s2-s1)/2. for s1,s2,f1,f2 in zip(sarr[:-1],sarr[1:],farrs[:-1],farrs[1:])],axis=0)
-                return fint
-                
+        elif self._validate_radf(quant):
+            return self._get_radf(quant) 
         else:
             raise ValueError("The quantity %s was not found for this model."%(quant))
 
@@ -615,6 +589,78 @@ class chem_mod:
             return get_contour_arr(quant,nx,ny,sortx=self.phys['R']) 
         else:
             raise ValueError("Unrecognized format: %s"%(fmt))
+    
+    ## _validate functions are used to determine if the quantity name
+    ##  provided is a valid (i.e. loadable) quantity of the given type.
+    ##  Quantities can be Physical Model Quantities (phys), Abundances (abun),
+    ##                    Radiation Fields (radf), or Reactions (reac).
+    ## Each funtion returns True if the given quant is loadable for the given 
+    ## quantity type, and they're used to determine how to load different 
+    ## quantities in get_quant.
+    def _validate_phys(self,quant):
+        return quant in self.phys.columns
+    def _validate_abun(self,quant,time=0):
+        if quant[0] == 'n':
+            quant = quant[1:]
+        try:
+            self.grab_mol(quant,times=time)
+            return True
+        except IndexError:
+            return False
+    def _validate_radf(self,quant):
+        #If quant isn't a string, return False.
+        if not isinstance(quant,str):
+            return False
+        #Otherwise extract field name and check if it's valid.
+        field = quant.split('_')[0]
+        return field in self.inp_paths.keys() and not self.inp_paths[field] is None
+    def _validate_reac(self,quant):
+        pass
+
+    
+    ## _get functions are used to load quantites of each type delineated above.
+    ##  They are used by get_quant to load/retrieve different types of model quantities.
+    def _get_abun(self,quant,time=0):
+        if quant[0] == 'n': #Return species density
+            times = np.array(self.abunds[quant[1:]].columns)
+            nearest = times[np.argmin((times-time)**2)]
+            ab = self.abunds[quant[1:]][nearest]
+            rho = self.get_quant('rho')
+            nH = rho / mp
+            return ab*nH
+        else: #Return species abundance
+            times = np.array(self.abunds[quant].columns)
+            nearest = times[np.argmin((times-time)**2)]
+            return self.abunds[quant][nearest]
+
+    def _get_radf(self,quant):
+        if len(quant.split('_')) == 1: #If no option is provided, return full field
+            field,opt = quant,None
+        else:                          #Otherwise, evaluate option and return
+            field,opt = quant.split('_')[:2]
+        
+        #Load field if it's not already loaded.
+        if not field in self.radfields.keys():
+            self.load_field(field)
+        
+        #Evaluate option and return.
+        if opt is None:
+            return self.radfields[field]
+        if opt in self.radfields[field].columns:
+            return self.radfields[field][opt]
+        elif opt == 'intphot':
+            sarr = np.sort(self.radfields[field].columns)
+            farrs = [self.radfields[field][s] for s in sarr]
+            fint = np.sum([(f1+f2)*(s2-s1)/2. for s1,s2,f1,f2 in zip(sarr[:-1],sarr[1:],farrs[:-1],farrs[1:])],axis=0)
+            return fint
+        elif opt == 'interg':
+            erg_per_phot = {'xray':lambda s: s*1.6022e-9, 'uv':lambda s:6.626e-27*3e10/(s/1e8),'isrf':lambda s:6.626e-27*3e10/(s/1e8)}
+            sarr = np.sort(self.radfields[field].columns)
+            farrs = [erg_per_phot[field](s)*self.radfields[field][s] for s in sarr]
+            fint = np.sum([(f1+f2)*(s2-s1)/2. for s1,s2,f1,f2 in zip(sarr[:-1],sarr[1:],farrs[:-1],farrs[1:])],axis=0)
+            return fint
+
+
 
     def get_spatial(self,yaxis='z',fmt='pandas'):
         R = self.get_quant('R',fmt=fmt)
@@ -623,7 +669,7 @@ class chem_mod:
         if yaxis == 'z/r':
             Y = Y/R
         elif yaxis == 'zone':
-            Y = self.phys['shell']#Nzones - (Y/R)/np.nanmax(Y/R)*Nzones
+            Y = self.phys['shell']
         elif not yaxis=='z':
             raise ValueError("Unrecognized yaxis: %s"%(yaxis))
         return R,Y
