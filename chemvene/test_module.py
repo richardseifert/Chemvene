@@ -67,8 +67,7 @@ class TestRead:
         self.template_find_mol('H-',71,10,1)
 
     ### Test load_physical ###
-    def template_load_physical(self,fi,c_rau,c_height,c_Tg,c_Td,c_rho):
-        out_fpath = self.out_fpaths[fi]
+    def template_load_physical(self,out_fpath,c_rau,c_height,c_Tg,c_Td,c_rho):
         rau,height,Tg,Td,rho = load_physical(out_fpath)
         assert    rau == c_rau
         assert height == c_height
@@ -76,12 +75,17 @@ class TestRead:
         assert     Td == c_Td
         assert    rho == c_rho
     def test_load_physical1(self):
-        self.template_load_physical(0,3.21e1,3.276e0,27.8,27.8,7.462e-14)
+        out_fpath = test_model+'e1/r32.0981_e1_16.out'
+        self.template_load_physical(out_fpath,3.21e1,3.276e0,27.8,27.8,7.462e-14)
     def test_load_physical2(self):
-        self.template_load_physical(5,1.065e1,2.885e0,91.6,85.4,4.447e-15)
+        out_fpath = test_model+'e1/r10.6547_e1_8.out'
+        self.template_load_physical(out_fpath,1.065e1,2.885e0,91.6,85.4,4.447e-15)
     def test_load_physical3(self):
-        self.template_load_physical(-1,1.065e1,1.087e0,37.0,37.0,7.101e-13)
+        out_fpath = test_model+'e1/r10.6547_e1_16.out'
+        self.template_load_physical(out_fpath,1.065e1,1.087e0,37.0,37.0,7.101e-13)
     def test_load_physical4(self):
-        self.template_load_physical(7,2.001e1,7.208e0,109.5,85.4,3.529e-16)
+        out_fpath = test_model+'e1/r20.0087_e1_4.out'
+        self.template_load_physical(out_fpath,2.001e1,7.208e0,109.5,85.4,3.529e-16)
     def test_load_physical5(self):
-        self.template_load_physical(15,3.21e1,7.993e0,42.2,42.1,8.577e-15)
+        out_fpath = test_model+'e1/r32.0981_e1_9.out'
+        self.template_load_physical(out_fpath,3.21e1,7.993e0,42.2,42.1,8.577e-15)
