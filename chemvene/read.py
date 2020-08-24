@@ -12,7 +12,7 @@ def find_mol(fpaths, strmol):
     Broken radii may present incorrect times and abundances, so search each file 
     until a valid file is found.
     '''
-    strmol = ' '+strmol.lstrip().rstrip()+' ' #Pad strmol for search
+    strmol = ensure_pad(strmol) #Pad strmol for search
     fi = 0
     bad_times = True
     #For some files, all the times are 0 and abundances are nan.
@@ -32,6 +32,9 @@ def find_mol_helper(fpath,strmol):
     f = open(fpath)
     lines = f.read().split('\n')
     f.close()
+
+    #Make sure strmol is padded with spaces.
+    strmol = ensure_pad(strmol)
 
     #Find all lines containing strmol.
     lnums = []
@@ -53,6 +56,8 @@ def find_mol_helper(fpath,strmol):
     times = dat[:,0]
 
     return mol_head,nrows,col,times
+def ensure_pad(strg):
+    return ' '+strg.strip()+' '
 
 def load_mol(fpath,strmol,mol_head=None,nrows=None,col=None):
     '''
@@ -70,7 +75,6 @@ def load_mol_abund(direc,strmol):
     if direc[-1] != '/':
         direc += '/'
     fpaths = glob.glob(direc+'r*.out')
-    print(direc+'r*.out')
     
     #Get location of strmol in r.out files, and timesteps.
     mol_start,nrows,col,Times = find_mol(fpaths,strmol)
