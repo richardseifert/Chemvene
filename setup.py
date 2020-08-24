@@ -1,7 +1,7 @@
 from setuptools import setup
 
 setup(name='chemvene',
-      version='0.1',
+      version='1.1',
       description='A convenient chemical model visualization and analysis engine for processing output from the Michigan protoplanetary disk chemical modeling code.',
       url='https://github.com/richardseifert/Chemvene',
       author='Richard Seifert',
