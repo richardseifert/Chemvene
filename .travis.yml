@@ -63,29 +63,29 @@ jobs:
       osx_image: xcode9.3
       language: shell
       install:
-        - pip install . || pip3 install .
-        - pip install -U pytest || pip3 install -U pytest
+        - pip install --user .
+        - pip install --user pytest
     - name: "Python ??? from Xcode 9.2 on macOS"
       os: osx
       osx_image: xcode9.2
       language: shell
       install:
-        - pip install . || pip3 install .
-        - pip install -U pytest || pip3 install -U pytest
+        - pip install --user .
+        - pip install --user pytest
     - name: "Python ??? from Xcode 9.1 on macOS"
       os: osx
       osx_image: xcode9.1
       language: shell
       install:
-        - pip install . || pip3 install .
-        - pip install -U pytest || pip3 install -U pytest
+        - pip install --user .
+        - pip install --user pytest
     - name: "Python ??? from Xcode 9 on macOS"
       os: osx
       osx_image: xcode9
       language: shell
       install:
-        - pip install .
-        - pip install -U pytest
+        - pip install --user .
+        - pip install --user pytest
 
   allow_failures:
     - python: 3.5
