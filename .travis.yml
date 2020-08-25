@@ -3,11 +3,21 @@ python:
  - 3.6
  - 3.7
  - 3.8
+ - 3.5
+ - 3.4
+ - 3.3
  - 2.7
-os:
- - linux
+include:
+  jobs:
+    - name: "Ubuntu precise"
+      dist: precise
+    - name: "Ubuntu trusty"
+      dist: trusty
+    - name: "Ubuntu xenial"
+      dist: xenial
+    - name: "Ubuntu bionic"
+      dist: bionic
 install:
  - pip install .
-# - pip install -r requirements.txt
 script:
-  - pytest
+ - pytest
