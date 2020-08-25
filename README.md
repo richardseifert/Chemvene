@@ -7,18 +7,8 @@ For an overview of features, detailed installation and setup, and full documenta
 
 ## Installation
 
-Chemvene can be installed with pip, or by cloning this repository.
-
-### 1. Installation with pip
+Chemvene can be installed with pip!
 
 ```
 pip install [--user] Chemvene
-```
-
-### 3. Local install
-
-```
-git clone https://github.com/richardseifert/Chemvene.git
-cd Chemvene
-pip install [--user] .
 ```
