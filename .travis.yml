@@ -1,45 +1,27 @@
 language: python
 jobs:
   include:
-      #Ubuntu Precise builds
-    - name: "Python 3.8 on Ubuntu precise"
-      dist: precise
+    #Ubuntu Bionic builds
+    - name: "Python 3.8 on Ubuntu bionic"
+      dist: bionic
       python: 3.8
-    - name: "Python 3.7 on Ubuntu precise"
-      dist: precise
+    - name: "Python 3.7 on Ubuntu bionic"
+      dist: bionic
       python: 3.7
-    - name: "Python 3.6 on Ubuntu precise"
-      dist: precise
+    - name: "Python 3.6 on Ubuntu bionic"
+      dist: bionic
       python: 3.6
-    - name: "Python 3.5 on Ubuntu precise"
-      dist: precise
+    - name: "Python 3.5 on Ubuntu bionic"
+      dist: bionic
       python: 3.5
-    - name: "Python 3.4 on Ubuntu precise"
-      dist: precise
+    - name: "Python 3.4 on Ubuntu bionic"
+      dist: bionic
       python: 3.4
-    - name: "Python 2.7 on Ubuntu precise"
-      dist: precise
+    - name: "Python 2.7 on Ubuntu bionic"
+      dist: bionic
       python: 2.7
-
-      #Ubuntu Trusty builds
-    - name: "Python 3.8 on Ubuntu trusty"
-      dist: trusty
-      python: 3.8
-    - name: "Python 3.7 on Ubuntu trusty"
-      dist: trusty
-      python: 3.7
-    - name: "Python 3.6 on Ubuntu trusty"
-      dist: trusty
-      python: 3.6
-    - name: "Python 3.5 on Ubuntu trusty"
-      dist: trusty
-      python: 3.5
-    - name: "Python 3.4 on Ubuntu trusty"
-      dist: trusty
-      python: 3.4
-    - name: "Python 2.7 on Ubuntu trusty"
-      dist: trusty
-      python: 2.7
+      allow_failures:
+       - python: 2.7
 
       #Ubuntu Xenial builds
     - name: "Python 3.8 on Ubuntu xenial"
@@ -61,25 +43,21 @@ jobs:
       dist: xenial
       python: 2.7
 
-      #Ubuntu Bionic builds
-    - name: "Python 3.8 on Ubuntu bionic"
-      dist: bionic
-      python: 3.8
-    - name: "Python 3.7 on Ubuntu bionic"
-      dist: bionic
-      python: 3.7
-    - name: "Python 3.6 on Ubuntu bionic"
-      dist: bionic
+      #Ubuntu Trusty builds
+    - name: "Python 3.6 on Ubuntu trusty"
+      dist: trusty
       python: 3.6
-    - name: "Python 3.5 on Ubuntu bionic"
-      dist: bionic
+      allow_failures:
+       - python: 3.6
+    - name: "Python 3.5 on Ubuntu trusty"
+      dist: trusty
       python: 3.5
-    - name: "Python 3.4 on Ubuntu bionic"
-      dist: bionic
+    - name: "Python 3.4 on Ubuntu trusty"
+      dist: trusty
       python: 3.4
-    - name: "Python 2.7 on Ubuntu bionic"
-      dist: bionic
-      python: 2.7
+    - name: "Python 2.7 on Ubuntu trusty"
+      dist: trusty
+      python: 2.7        
 
 install:
  - pip install .
