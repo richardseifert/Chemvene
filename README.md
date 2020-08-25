@@ -12,5 +12,3 @@ Chemvene can be installed with pip!
 ```
 pip install [--user] Chemvene
 ```
-
-<span style="color:red">some **This is Red Bold.** text</span>
