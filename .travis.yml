@@ -6,7 +6,11 @@ python:
  - 2.7
 os:
  - linux
- - osx
+dist:
+ - xenial
+ - trusty
+ - precise
+ - bionic
 install:
  - pip install -r requirements.txt
 script:
