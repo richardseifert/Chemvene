@@ -41,6 +41,9 @@ jobs:
       os: osx
       osx_image: xcode11.2  # Python 3.7.4 running on macOS 10.14.4
       language: shell       # 'language: python' is an error on Travis CI macOS
+      install:
+        - pip install .
+        - pip install -U pytest
 
   allow_failures:
     - python: 3.5
