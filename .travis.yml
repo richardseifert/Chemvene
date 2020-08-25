@@ -25,22 +25,19 @@ jobs:
       python: 2.7
 
       #Ubuntu Trusty builds
-    #- name: "Python 3.6 on Ubuntu trusty"
-    #  dist: trusty
-    #  python: 3.6
+    - name: "Python 3.6 on Ubuntu trusty"
+      dist: trusty
+      python: 3.6
     - name: "Python 3.5 on Ubuntu trusty"
       dist: trusty
       python: 3.5
     - name: "Python 2.7 on Ubuntu trusty"
       dist: trusty
       python: 2.7
-
-
-
   allow_failures:
-    - python: 3.6
     - python: 3.5
     - python: 2.7
+    - name: "Python 3.6 on Ubuntu trusty"
 
 
 install:
