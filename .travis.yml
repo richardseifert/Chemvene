@@ -5,6 +5,7 @@ python:
   - 3.6
   - 3.5
   - 2.7
+dist: xenial
 jobs:
   include:
     #Ubuntu Bionic builds
@@ -34,6 +35,13 @@ jobs:
     - name: "Python 2.7 on Ubuntu trusty"
       dist: trusty
       python: 2.7
+
+      #Mac OSX builds
+    - name: "Python 3.7.4 on macOS"
+      os: osx
+      osx_image: xcode11.2  # Python 3.7.4 running on macOS 10.14.4
+      language: shell       # 'language: python' is an error on Travis CI macOS
+
   allow_failures:
     - python: 3.5
     - python: 2.7
