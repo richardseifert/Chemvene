@@ -6,11 +6,11 @@ python:
  - 2.7
 os:
  - linux
-dist:
- - xenial
- - trusty
- - precise
- - bionic
+arch:
+  - amd64
+  - ppc64le
+  - s390x
+  - arm64
 install:
  - pip install -r requirements.txt
 script:
