@@ -1,4 +1,5 @@
 import glob
+import numpy as np
 
 from .read import ensure_pad, find_mol_helper, find_mol, load_physical
 from . import __path__ as pkg_path
@@ -94,6 +95,30 @@ class TestRead:
 class TestChemMod:
     #Load test model for tests
     cmod = chem_mod(test_model,base_dir=test_base_dir)
+
+    ### Test timestep methods ###
+    def test_nearest_time_i_first(self):
+        assert self.cmod.nearest_time_i(0) == 0
+    def test_nearest_time_i_last(self):
+        assert self.cmod.nearest_time_i(1e7) == 9
+    def test_nearest_time_i_firts(self):
+        assert self.cmod.nearest_time_i(2e4) == 6
+    def test_nearest_times_single_noitr_first(self):
+        assert self.cmod.nearest_times(0) == 1
+    def test_nearest_times_last_noitr_last(self):
+        assert self.cmod.nearest_times(1e7) == 3e6
+    def test_nearest_times_single_noitr_middle(self):
+        assert self.cmod.nearest_times(2e4) == 2.08e4
+    def test_nearest_times_single_itr_first(self):
+        assert self.cmod.nearest_times(0,itr=True) == [1]
+    def test_nearest_times_last_itr_last(self):
+        assert self.cmod.nearest_times(1e7,itr=True) == [3e6]
+    def test_nearest_times_single_itr_middle(self):
+        assert self.cmod.nearest_times(2e4,itr=True) == [2.08e4]
+    def test_nearest_times_multi_noitr(self):
+        assert np.all(self.cmod.nearest_times([0,2e4,1e7]) == np.array([1,2.08e4,3e6]))
+    def test_nearest_times_multi_itr(self):
+        assert np.all(self.cmod.nearest_times([0,2e4,1e7],itr=True) == np.array([1,2.08e4,3e6]))
 
     ### Test get_quant and helpers ###
     ## Test quant validators
