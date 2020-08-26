@@ -181,9 +181,8 @@ class chem_mod:
         return tbl.rename(columns=dict(zip(ctimes,mtimes)))
 
     ################################################################################
-    ########################## Handling Model Timesteps ############################
+    ############################# Handling Timesteps ###############################
     ################################################################################
-
     def load_times(self):
         '''
         Method that reads the 2times.inp file for the model and produces an array of
@@ -231,9 +230,8 @@ class chem_mod:
         return np.argmin( (self.times - time)**2 )
 
     ################################################################################
-    ########################## Handling Physical Model #############################
+    ######################## Read/Write Model Quantities ###########################
     ################################################################################
-
     def load_physical(self):
         '''
         Method that loads the disk physical model from 1environ files.
@@ -288,11 +286,6 @@ class chem_mod:
             tbl['zAU']  = zAU[mask]
             tbl['flux'] = flux[mask]
             self.radfields[field][sv] = self.merge(tbl)['flux']
-
-    ################################################################################
-    ####################### Handling Abundances of Species #########################
-    ################################################################################
-
     def limedir(self,strmol):
         '''
         Function that produces string limefg path for a given species.
@@ -678,20 +671,6 @@ class chem_mod:
         elif not yaxis=='z':
             raise ValueError("Unrecognized yaxis: %s"%(yaxis))
         return R,Y
-
-    def get_sigma(self):
-        R = self.phys['R']
-        zAU = self.phys['zAU']
-        rho = self.phys['rho']
-        
-        cumulative = {}
-        for r in R:
-            if not r in cumulative.keys():
-                cumulative[r] = 0.0
-
-        sort = np.argsort(zAU)
-        for i in range(len(R)):
-            pass
     
     def z_quant(self,quant,R=100,time=0):
         '''
@@ -760,14 +739,7 @@ class chem_mod:
 
         return R,quant
 
-    def get_mol_dens(self, strmol, time=0):
-        ab = self.get_quant(strmol,time=time) # per number density Hydrogen nuclei.
-        rho = self.get_quant('rho')
-        nH = rho / mp
-        nX = np.array(ab*nH)
-        return nX
-
-    def get_cd_vertical(self,mol,time=0):
+    def get_vertical_cd(self,mol,time=0):
         #Copy inputs, so they aren't changed.
         R = np.array(self.get_quant('R')) * mau*100
         Z = np.array(self.get_quant('zAU')) * mau*100
@@ -790,20 +762,6 @@ class chem_mod:
                 N[i] = N[i-1] + 0.5*(nX[i]+nX[i-1])*(Z[i-1]-Z[i])
 
         return N[unsort]
-    def get_cd_radial(self,mol,time=0):
-        pass
-
-    def get_shield_fi(self,mol,alpha,delta,zeta,cd_mode='vertical',time=0):
-        if cd_mode == 'vertical':
-            N = self.get_cd_vertical(mol,time=time)
-        elif cd_mode == 'radial':
-            N = self.get_cd_radial(mol,time=time)
-        else:
-            raise ValueError("Invalid column density mode %s"%(cd_mode))
-
-        x = N/zeta
-        f = (1+x)**-delta * np.exp(-alpha*x)
-        return f
     
     def column_density(self,strmol,time=0):
         '''
