@@ -196,7 +196,7 @@ def load_radfield(path):
     spec_vals = []
     line = f.readline()
     while line.split(' ')[0]!='Radius(AU)' and len(line)>0:
-        specv = next(filter(None,line.split(' ')))
+        specv = list(filter(None,line.split(' ')))[0]
         try:
             spec_vals.append(float(specv))
         except ValueError:
