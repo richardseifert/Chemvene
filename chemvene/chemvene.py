@@ -97,9 +97,10 @@ class chem_mod:
             self.environ += '/' 
     def set_inp(self,inp):
         self.inp = self.environ+inp
-        self.inp_paths = {k:None for k in ['spec','reac','uv','xray','isrf','rn']}
+        inp_types = ['spec','reac','uv','xray','isrf','rn']
+        self.inp_paths = {k:None for k in inp_types}
         d = np.genfromtxt(self.inp,dtype=str)
-        for i,k in enumerate(self.inp_paths.keys()):
+        for i,k in enumerate(inp_types):
             if os.path.exists(self.bsd+d[i]):
                 self.inp_paths[k] = self.bsd+d[i]
 
