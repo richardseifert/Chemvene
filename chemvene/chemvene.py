@@ -608,12 +608,20 @@ class chem_mod:
         except IndexError:
             return False
     def _validate_radf(self,quant):
-        #If quant isn't a string, return False.
-        if not isinstance(quant,str):
+        #Try extracting field name from quant string
+        try:
+            field = quant.split('_')[0]
+        except AttributeError:
+            return False #Not a valid radiation field name.
+
+        #If field is already loaded, return True
+        if field in self.radfields.keys():
+            return True
+        try:
+            self.load_field(field)
+            return True
+        except (TypeError, KeyError) as e:
             return False
-        #Otherwise extract field name and check if it's valid.
-        field = quant.split('_')[0]
-        return field in self.inp_paths.keys() and not self.inp_paths[field] is None
     def _validate_reac(self,quant):
         pass
 
@@ -638,10 +646,6 @@ class chem_mod:
             field,opt = quant,None
         else:                          #Otherwise, evaluate option and return
             field,opt = quant.split('_')[:2]
-        
-        #Load field if it's not already loaded.
-        if not field in self.radfields.keys():
-            self.load_field(field)
         
         #Evaluate option and return.
         if opt is None:
