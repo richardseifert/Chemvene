@@ -2,6 +2,7 @@ import glob
 
 from .read import ensure_pad, find_mol_helper, find_mol, load_physical
 from . import __path__ as pkg_path
+from . import chem_mod
 
 test_base_dir = pkg_path[0]+'/test_files/'
 test_model = test_base_dir+'test_model/'
@@ -89,3 +90,28 @@ class TestRead:
     def test_load_physical5(self):
         out_fpath = test_model+'e1/r32.0981_e1_9.out'
         self.template_load_physical(out_fpath,3.21e1,7.993e0,42.2,42.1,8.577e-15)
+
+class TestChemMod:
+    #Load test model for tests
+    cmod = chem_mod(test_model,base_dir=test_base_dir)
+
+    ### Test get_quant and helpers ###
+    ## Test quant validators
+    def test_validate_phys_true(self):
+        assert self.cmod._validate_phys('rho') == True
+    def test_validate_phys_false(self):
+        assert self.cmod._validate_phys('spaghetti') == False
+    def test_validate_abun_true(self):
+        assert self.cmod._validate_abun('H3+',time=0) == True
+    def test_validate_abun_false(self):
+        assert self.cmod._validate_abun('meatballs',time=0) == False
+    def test_validate_dens_true(self):
+        assert self.cmod._validate_abun('nH(gr)',time=0) == True
+    def test_validate_dens_false(self):
+        assert self.cmod._validate_abun('nmeatballs',time=0) == False
+    def test_validate_radf_true(self):
+        assert self.cmod._validate_radf('uv') == True
+    def test_validate_radf_none(self):
+        assert self.cmod._validate_radf('isrf') == False
+    def test_validate_radf_false(self):
+        assert self.cmod._validate_radf('tomatosauce') == False
