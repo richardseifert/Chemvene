@@ -179,5 +179,34 @@ class TestChemMod:
         with pytest.raises(ValueError):
             self.cmod._get_radf('uv_fakeopt')
 
+    ## Test _retrieve_quant
+    def test_retrieve_abun_success(self):
+        # Passes test if no error
+        self.cmod._retrieve_quant('H3+',time=1e6)
+    def test_retrieve_dens_success(self):
+        # Passes test if no error
+        self.cmod._retrieve_quant('nHe+',time=1e6)
+    def test_retrieve_abun_fail(self):
+        with pytest.raises(ValueError):
+            self.cmod._retrieve_quant('FAKE',time=1e6)
+    def test_retrieve_dens_fail(self):
+        with pytest.raises(ValueError):
+            self.cmod._retrieve_quant('nFAKE',time=1e6)
+    def test_retrieve_radf_success(self):
+        #Passes test if no error
+        self.cmod._retrieve_quant('uv')
+    def test_retrieve_radf_fail(self):
+        with pytest.raises(ValueError):
+            self.cmod._retrieve_quant('FAKE')
+    def test_retrieve_radf_intphot_success(self):
+        #Passes test if no error
+        self.cmod._retrieve_quant('xray_intphot')
+    def test_retrieve_radf_interg_success(self):
+        #Passes test if no error
+        self.cmod._retrieve_quant('xray_interg')
+    def test_retrieve_radf_invalid_opt_fail(self):
+        with pytest.raises(ValueError):
+            self.cmod._retrieve_quant('uv_fakeopt')
+
 
     
