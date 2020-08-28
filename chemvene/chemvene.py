@@ -235,9 +235,6 @@ class chem_mod:
     def load_physical(self):
         '''
         Method that loads the disk physical model from 1environ files.
-
-        No arguments or returns; physical model is stored in a pandas.DataFrame
-        object, self.phys
         '''
         env_paths = glob.glob(self.environ+'1environ*')
 
@@ -553,22 +550,8 @@ class chem_mod:
         RETURNS:
             1D array of quant values corresponding to R and shell/zAU columns of self.phys
         '''
-        if iterable(quant):
-            pass #quant is already 2D values.
-        elif self._validate_phys(quant):
-            quant = self.phys[quant]
-        elif self._validate_abun(quant,time=time):
-            quant = self._get_abun(quant,time=time)
-        elif quant in self.rates.keys():
-            times = np.array(self.rates[quant].columns)
-            nearest = times[np.argmin((times-time)**2)]
-            quant = self.rates[quant][nearest]
-            if np.nanmean(quant) < 0:
-                quant = -quant
-        elif self._validate_radf(quant):
-            return self._get_radf(quant) 
-        else:
-            raise ValueError("The quantity %s was not found for this model."%(quant))
+        ### Retrieve 2-D quant values ###
+        quant = self._retrieve_quant(quant,time=time)
 
         if mask is None:
             mask = np.ones_like(quant).astype(bool)
@@ -583,6 +566,25 @@ class chem_mod:
             return get_contour_arr(quant,nx,ny,sortx=self.phys['R']) 
         else:
             raise ValueError("Unrecognized format: %s"%(fmt))
+
+    def _retrieve_quant(self,quant,time=0):
+        if iterable(quant):
+            return quant #quant passed is already 2-D values.
+        elif self._validate_phys(quant):
+            return self.phys[quant]
+        elif self._validate_abun(quant,time=time):
+            return self._get_abun(quant,time=time)
+        elif quant in self.rates.keys():
+            times = np.array(self.rates[quant].columns)
+            nearest = times[np.argmin((times-time)**2)]
+            quant = self.rates[quant][nearest]
+            if np.nanmean(quant) < 0:
+                quant = -quant
+            return quant
+        elif self._validate_radf(quant):
+            return self._get_radf(quant) 
+        else:
+            raise ValueError("The quantity %s was not found for this model."%(quant))
     
     ## _validate functions are used to determine if the quantity name
     ##  provided is a valid (i.e. loadable) quantity of the given type.
@@ -618,7 +620,6 @@ class chem_mod:
             return False
     def _validate_reac(self,quant):
         pass
-
     
     ## _get functions are used to load quantites of each type delineated above.
     ##  They are used by get_quant to load/retrieve different types of model quantities.
@@ -634,7 +635,6 @@ class chem_mod:
             times = np.array(self.abunds[quant].columns)
             nearest = times[np.argmin((times-time)**2)]
             return self.abunds[quant][nearest]
-
     def _get_radf(self,quant):
         if len(quant.split('_')) == 1: #If no option is provided, return full field
             field,opt = quant,None
@@ -657,9 +657,8 @@ class chem_mod:
             farrs = [erg_per_phot[field](s)*self.radfields[field][s] for s in sarr]
             fint = np.sum([(f1+f2)*(s2-s1)/2. for s1,s2,f1,f2 in zip(sarr[:-1],sarr[1:],farrs[:-1],farrs[1:])],axis=0)
             return fint
-
-
-
+        else:
+            raise ValueError("Invalid radiation field option, %s"%(opt))
     def get_spatial(self,yaxis='z',fmt='pandas'):
         R = self.get_quant('R',fmt=fmt)
 
@@ -738,30 +737,6 @@ class chem_mod:
         quant = quant[sort]
 
         return R,quant
-
-    def get_vertical_cd(self,mol,time=0):
-        #Copy inputs, so they aren't changed.
-        R = np.array(self.get_quant('R')) * mau*100
-        Z = np.array(self.get_quant('zAU')) * mau*100
-        if not mol in self.abunds.keys():
-            self.load_mol(mol,times=time)
-        nX = np.array(self.get_quant('n'+mol))
-        N = np.zeros_like(R)
-
-        #Sort inputs into rows
-        sort = np.lexsort((-Z,R))
-        unsort = np.argsort(sort)
-        R = R[sort]
-        Z = Z[sort]
-        nX = nX[sort]
-
-        for i in range(1,len(R)):
-            if R[i] != R[i-1]:
-                N[i] = 0.0
-            else:
-                N[i] = N[i-1] + 0.5*(nX[i]+nX[i-1])*(Z[i-1]-Z[i])
-
-        return N[unsort]
     
     def column_density(self,strmol,time=0):
         '''
