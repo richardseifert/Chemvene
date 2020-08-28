@@ -1,5 +1,6 @@
 import glob
 import numpy as np
+import pytest
 
 from .read import ensure_pad, find_mol_helper, find_mol, load_physical
 from . import __path__ as pkg_path
@@ -121,6 +122,7 @@ class TestChemMod:
         assert np.all(self.cmod.nearest_times([0,2e4,1e7],itr=True) == np.array([1,2.08e4,3e6]))
 
     ### Test get_quant and helpers ###
+
     ## Test quant validators
     def test_validate_phys_true(self):
         assert self.cmod._validate_phys('rho') == True
@@ -140,3 +142,42 @@ class TestChemMod:
         assert self.cmod._validate_radf('isrf') == False
     def test_validate_radf_false(self):
         assert self.cmod._validate_radf('tomatosauce') == False
+    def test_validate_radf_nonstr(self):
+        assert self.cmod._validate_radf(1234) == False
+
+    ## Test quant getters
+    def test_get_abun_success(self):
+        # Passes test if no error
+        self.cmod.grab_mol('H3+') #Ensure mol is loaded
+        self.cmod._get_abun('H3+',time=1e6)
+    def test_get_dens_success(self):
+        # Passes test if no error
+        self.cmod.grab_mol('He+') #Ensure mol is loaded
+        self.cmod._get_abun('nHe+',time=1e6)
+    def test_get_abun_fail(self):
+        with pytest.raises(KeyError):
+            self.cmod._get_abun('FAKE',time=1e6)
+    def test_get_dens_fail(self):
+        with pytest.raises(KeyError):
+            self.cmod._get_abun('nFAKE',time=1e6)
+    def test_get_radf_success(self):
+        #Passes test if no error
+        self.cmod._validate_radf('uv') #Ensure field is loaded
+        self.cmod._get_radf('uv')
+    def test_get_radf_fail(self):
+        with pytest.raises(KeyError):
+            self.cmod._get_radf('FAKE')
+    def test_get_radf_intphot_success(self):
+        #Passes test if no error
+        self.cmod._validate_radf('xray') #Ensure field is loaded
+        self.cmod._get_radf('xray_intphot')
+    def test_get_radf_interg_success(self):
+        #Passes test if no error
+        self.cmod._validate_radf('xray') #Ensure field is loaded
+        self.cmod._get_radf('xray_interg')
+    def test_get_radf_invalid_opt_fail(self):
+        with pytest.raises(ValueError):
+            self.cmod._get_radf('uv_fakeopt')
+
+
+    
