@@ -535,7 +535,7 @@ class chem_mod:
     ############################# Requesting Model Data ############################
     ################################################################################
 
-    def get_quant(self,quant,time=0,mask=None,fmt='pandas'):
+    def get_quant(self,quant,time=0,mask=None,fmt='numpy'):
         '''
         Method for obtaining model quantity at all locations of the disk,
         at a specific time.
@@ -558,8 +558,10 @@ class chem_mod:
         elif fmt == 'contour':
             raise ValueError("Cannot return contour-formatted arrays with mask")
 
-        if fmt == 'pandas':
+        if fmt == 'numpy':
             return np.array(quant[mask])
+        elif fmt == 'pandas':
+            return quant[mask]
         elif fmt == 'contour':
             nx = len(list(set(self.phys['R'])))
             ny = len(list(set(self.phys['shell'])))
@@ -659,7 +661,7 @@ class chem_mod:
             return fint
         else:
             raise ValueError("Invalid radiation field option, %s"%(opt))
-    def get_spatial(self,yaxis='z',fmt='pandas'):
+    def get_spatial(self,yaxis='z',fmt='numpy'):
         R = self.get_quant('R',fmt=fmt)
 
         Y = self.get_quant('zAU',fmt=fmt)
