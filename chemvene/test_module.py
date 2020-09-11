@@ -209,4 +209,7 @@ class TestChemMod:
             self.cmod._retrieve_quant('uv_fakeopt')
 
 
-    
+    #Test read_, load_, and grab_mol
+    def test_read(self):
+        #Somehow check that the right file was opened?
+        self.cmod.read_mol('H3+')
